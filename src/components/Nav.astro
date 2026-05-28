@@ -1,0 +1,106 @@
+---
+import { getLangFromUrl, useTranslations, useTranslatedPath } from '../i18n/utils';
+import { languages } from '../i18n/ui';
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const translatePath = useTranslatedPath(lang);
+
+// 현재 경로에서 언어 부분을 제외한 경로를 구함
+const currentPath = Astro.url.pathname;
+const pathWithoutLang = currentPath.replace(new RegExp(`^/(${Object.keys(languages).join('|')})/?`), '/') || '/';
+
+const navItems = [
+  { href: translatePath('/'), label: t('nav.home') },
+  { href: 'https://github.com/dailytools26/dailytools26.github.io', label: t('nav.github'), external: true },
+];
+---
+
+<header class="header">
+  <div class="container nav-container">
+    <a href={translatePath('/')} class="logo">
+      <span class="logo-icon">🛠️</span>
+      <span class="logo-text">DailyTools<span class="text-gradient">26</span></span>
+    </a>
+
+    <nav class="nav-links">
+      {navItems.map(item => (
+        <a href={item.href} class="nav-link" target={item.external ? '_blank' : '_self'} rel={item.external ? 'noopener noreferrer' : ''}>
+          {item.label}
+        </a>
+      ))}
+      
+      <div class="lang-switcher">
+        <select onchange="window.location.href=this.value" aria-label="Language selector">
+          {Object.entries(languages).map(([code, label]) => (
+            <option value={translatePath(pathWithoutLang, code)} selected={code === lang}>
+              {label}
+            </option>
+          ))}
+        </select>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<style>
+  .header {
+    height: 64px;
+    border-bottom: 1px solid var(--border);
+    background-color: rgba(2, 4, 32, 0.8);
+    backdrop-filter: blur(12px);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+  
+  .nav-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 100%;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 700;
+    font-size: 1.25rem;
+  }
+  
+  .logo-icon {
+    font-size: 1.5rem;
+  }
+
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .nav-link {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    transition: color 0.2s;
+    font-weight: 500;
+  }
+
+  .nav-link:hover {
+    color: var(--text-primary);
+  }
+
+  .lang-switcher select {
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    cursor: pointer;
+  }
+  
+  .lang-switcher select:hover {
+    border-color: var(--border-hover);
+  }
+</style>

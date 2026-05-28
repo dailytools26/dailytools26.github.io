@@ -1,0 +1,187 @@
+---
+import { getLangFromUrl, useTranslations } from '../i18n/utils';
+import { getAllCategories } from '../data/tools';
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const categories = getAllCategories();
+---
+
+<div class="search-section">
+  <div class="container">
+    <div class="search-wrapper">
+      <div class="search-input-container">
+        <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input 
+          type="text" 
+          id="tool-search" 
+          placeholder={t('search.placeholder')} 
+          class="search-input"
+          autocomplete="off"
+        />
+        <div class="search-shortcut">{t('search.shortcut')}</div>
+      </div>
+    </div>
+    
+    <div class="category-filters">
+      <button class="filter-btn active" data-category="all">
+        {t('category.all')}
+      </button>
+      {categories.map(cat => (
+        <button class="filter-btn" data-category={cat.slug}>
+          {cat.label[lang] || cat.label['ko']}
+        </button>
+      ))}
+    </div>
+  </div>
+</div>
+
+<style>
+  .search-section {
+    padding: 2rem 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .search-wrapper {
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto 2rem;
+  }
+
+  .search-input-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    transition: all 0.2s;
+  }
+
+  .search-input-container:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 1rem;
+    color: var(--text-muted);
+  }
+
+  .search-input {
+    width: 100%;
+    padding: 1rem 1rem 1rem 3rem;
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-size: 1rem;
+    outline: none;
+  }
+  
+  .search-input::placeholder {
+    color: var(--text-muted);
+  }
+
+  .search-shortcut {
+    position: absolute;
+    right: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-family: monospace;
+  }
+
+  .category-filters {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .filter-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+  }
+
+  .filter-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+
+  .filter-btn.active {
+    background: var(--accent-glow);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+</style>
+
+<script>
+  // Search and Filter Logic
+  document.addEventListener('DOMContentLoaded', () => {
+    const searchInput = document.getElementById('tool-search') as HTMLInputElement;
+    const filterBtns = document.querySelectorAll('.filter-btn');
+    const toolCards = document.querySelectorAll('.tool-card-wrapper');
+    
+    let currentCategory = 'all';
+    let searchQuery = '';
+
+    // CMD+K / CTRL+K shortcut
+    document.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        searchInput?.focus();
+      }
+    });
+
+    const filterTools = () => {
+      toolCards.forEach(card => {
+        const el = card as HTMLElement;
+        const category = el.dataset.category || '';
+        const tags = el.dataset.tags || '';
+        const title = el.dataset.title || '';
+        
+        const matchesCategory = currentCategory === 'all' || category === currentCategory;
+        const searchLower = searchQuery.toLowerCase();
+        const matchesSearch = title.toLowerCase().includes(searchLower) || tags.toLowerCase().includes(searchLower);
+        
+        if (matchesCategory && matchesSearch) {
+          el.style.display = 'block';
+        } else {
+          el.style.display = 'none';
+        }
+      });
+    };
+
+    searchInput?.addEventListener('input', (e) => {
+      searchQuery = (e.target as HTMLInputElement).value;
+      filterTools();
+    });
+
+    filterBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const target = e.currentTarget as HTMLButtonElement;
+        
+        // Update active class
+        filterBtns.forEach(b => b.classList.remove('active'));
+        target.classList.add('active');
+        
+        currentCategory = target.dataset.category || 'all';
+        filterTools();
+      });
+    });
+  });
+</script>

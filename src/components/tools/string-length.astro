@@ -1,0 +1,151 @@
+---
+import { getLangFromUrl } from '../../i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+
+const i18n = {
+  ko: {
+    placeholder: '여기에 텍스트를 입력하거나 붙여넣으세요...',
+    withSpaces: '공백 포함',
+    withoutSpaces: '공백 제외',
+    words: '단어 수',
+    lines: '줄 수',
+  },
+  en: {
+    placeholder: 'Type or paste your text here...',
+    withSpaces: 'Characters (with spaces)',
+    withoutSpaces: 'Characters (no spaces)',
+    words: 'Words',
+    lines: 'Lines',
+  }
+};
+
+const t = i18n[lang] || i18n['ko'];
+---
+
+<div class="tool-string-length">
+  <textarea 
+    id="text-input" 
+    class="text-input" 
+    placeholder={t.placeholder}
+    rows="8"
+  ></textarea>
+
+  <div class="stats-grid">
+    <div class="stat-box">
+      <span class="stat-label">{t.withSpaces}</span>
+      <span class="stat-value" id="val-with-spaces">0</span>
+    </div>
+    <div class="stat-box">
+      <span class="stat-label">{t.withoutSpaces}</span>
+      <span class="stat-value" id="val-no-spaces">0</span>
+    </div>
+    <div class="stat-box">
+      <span class="stat-label">{t.words}</span>
+      <span class="stat-value" id="val-words">0</span>
+    </div>
+    <div class="stat-box">
+      <span class="stat-label">{t.lines}</span>
+      <span class="stat-value" id="val-lines">0</span>
+    </div>
+  </div>
+</div>
+
+<style>
+  .tool-string-length {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .text-input {
+    width: 100%;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+    color: var(--text-primary);
+    font-size: 1rem;
+    font-family: inherit;
+    resize: vertical;
+    transition: border-color 0.2s;
+  }
+
+  .text-input:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+
+  @media (min-width: 640px) {
+    .stats-grid {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+
+  .stat-box {
+    background: var(--bg-hover);
+    padding: 1.5rem;
+    border-radius: var(--radius);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+  }
+
+  .stat-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+    text-align: center;
+  }
+
+  .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--accent);
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const input = document.getElementById('text-input') as HTMLTextAreaElement;
+    const valWithSpaces = document.getElementById('val-with-spaces');
+    const valNoSpaces = document.getElementById('val-no-spaces');
+    const valWords = document.getElementById('val-words');
+    const valLines = document.getElementById('val-lines');
+
+    if (!input) return;
+
+    const calculateStats = () => {
+      const text = input.value;
+      
+      if (valWithSpaces) {
+        valWithSpaces.textContent = text.length.toString();
+      }
+      
+      if (valNoSpaces) {
+        valNoSpaces.textContent = text.replace(/\s/g, '').length.toString();
+      }
+      
+      if (valWords) {
+        // 단어 수 계산 (공백으로 구분, 빈 문자열 제외)
+        const wordCount = text.trim() === '' ? 0 : text.trim().split(/\s+/).length;
+        valWords.textContent = wordCount.toString();
+      }
+      
+      if (valLines) {
+        const lineCount = text === '' ? 0 : text.split(/\r\n|\r|\n/).length;
+        valLines.textContent = lineCount.toString();
+      }
+    };
+
+    input.addEventListener('input', calculateStats);
+  });
+</script>

@@ -1,23 +1,38 @@
+---
+import '../styles/global.css';
+import { getLangFromUrl } from '../i18n/utils';
+import Nav from '../components/Nav.astro';
+
+interface Props {
+	title: string;
+	description?: string;
+}
+
+const { title, description = "Essential Tools for Web Developers" } = Astro.props;
+const lang = getLangFromUrl(Astro.url);
+---
+
 <!doctype html>
-<html lang="en">
+<html lang={lang}>
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width" />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<link rel="icon" href="/favicon.ico" />
 		<meta name="generator" content={Astro.generator} />
-		<title>Astro Basics</title>
+		<meta name="description" content={description} />
+		<title>{title} | DailyTools26</title>
 	</head>
 	<body>
-		<slot />
+		<Nav />
+		<main>
+			<slot />
+		</main>
 	</body>
 </html>
 
 <style>
-	html,
-	body {
-		margin: 0;
-		width: 100%;
-		height: 100%;
+	main {
+		min-height: calc(100vh - 64px); /* Nav height */
 	}
 </style>

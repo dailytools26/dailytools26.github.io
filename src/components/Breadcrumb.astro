@@ -1,0 +1,85 @@
+---
+import { getLangFromUrl, useTranslations, useTranslatedPath } from '../i18n/utils';
+import type { Tool } from '../types/tool';
+
+interface Props {
+  tool: Tool;
+}
+
+const { tool } = Astro.props;
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const translatePath = useTranslatedPath(lang);
+
+const categoryLabel = tool.categoryLabel[lang] || tool.categoryLabel['ko'];
+const toolName = tool.name[lang] || tool.name['ko'];
+---
+
+<nav aria-label="Breadcrumb" class="breadcrumb-nav">
+  <div class="container">
+    <ol class="breadcrumb-list">
+      <li class="breadcrumb-item">
+        <a href={translatePath('/')} class="breadcrumb-link">{t('breadcrumb.home')}</a>
+      </li>
+      <li class="breadcrumb-separator">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      </li>
+      <li class="breadcrumb-item">
+        <span class="breadcrumb-current">{categoryLabel}</span>
+      </li>
+      <li class="breadcrumb-separator">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      </li>
+      <li class="breadcrumb-item">
+        <span class="breadcrumb-current" aria-current="page">{toolName}</span>
+      </li>
+    </ol>
+  </div>
+</nav>
+
+<style>
+  .breadcrumb-nav {
+    padding: 1.5rem 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 2rem;
+  }
+
+  .breadcrumb-list {
+    display: flex;
+    align-items: center;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    font-size: 0.875rem;
+  }
+
+  .breadcrumb-item {
+    display: flex;
+    align-items: center;
+  }
+
+  .breadcrumb-link {
+    color: var(--text-secondary);
+    transition: color 0.2s;
+  }
+
+  .breadcrumb-link:hover {
+    color: var(--text-primary);
+  }
+
+  .breadcrumb-separator {
+    display: flex;
+    align-items: center;
+    color: var(--text-muted);
+    margin: 0 0.5rem;
+  }
+
+  .breadcrumb-current {
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+</style>
