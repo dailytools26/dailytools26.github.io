@@ -136,7 +136,11 @@ const categories = getAllCategories();
     const filterBtns = document.querySelectorAll('.filter-btn');
     const toolCards = document.querySelectorAll('.tool-card-wrapper');
     
-    let currentCategory = 'all';
+    // URL query string에서 category 파라미터 읽기
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialCategory = urlParams.get('category');
+    
+    let currentCategory = initialCategory || 'all';
     let searchQuery = '';
 
     // CMD+K / CTRL+K shortcut
@@ -146,6 +150,15 @@ const categories = getAllCategories();
         searchInput?.focus();
       }
     });
+
+    // 초기 상태 세팅 (버튼 활성화 및 필터링)
+    if (initialCategory) {
+      const targetBtn = document.querySelector(`.filter-btn[data-category="${initialCategory}"]`);
+      if (targetBtn) {
+        filterBtns.forEach(b => b.classList.remove('active'));
+        targetBtn.classList.add('active');
+      }
+    }
 
     const filterTools = () => {
       toolCards.forEach(card => {
@@ -171,6 +184,9 @@ const categories = getAllCategories();
       filterTools();
     });
 
+    // 페이지 로드 시 초기 필터링 실행
+    filterTools();
+
     filterBtns.forEach(btn => {
       btn.addEventListener('click', (e) => {
         const target = e.currentTarget as HTMLButtonElement;
@@ -181,6 +197,15 @@ const categories = getAllCategories();
         
         currentCategory = target.dataset.category || 'all';
         filterTools();
+
+        // Update URL query string without reloading
+        const newUrl = new URL(window.location.href);
+        if (currentCategory === 'all') {
+          newUrl.searchParams.delete('category');
+        } else {
+          newUrl.searchParams.set('category', currentCategory);
+        }
+        window.history.pushState({}, '', newUrl);
       });
     });
   });

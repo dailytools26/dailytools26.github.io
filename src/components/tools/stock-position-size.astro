@@ -1,0 +1,484 @@
+---
+import { getLangFromUrl } from '../../i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+
+const i18n = {
+  ko: {
+    capitalSetting: '투자 자산 설정',
+    totalCapital: '총 투자 원금',
+    riskPercent: '감수할 리스크 비율 (%)',
+    priceSetting: '매매 계획 설정',
+    entryPrice: '매수 진입가',
+    stopLossPrice: '손절가',
+    results: '계산 결과',
+    riskAmount: '허용 손실 금액',
+    sharesToBuy: '추천 매수 수량',
+    totalCost: '필요 투자 금액',
+    leverageWarning: '⚠️ 경고: 필요 금액이 투자 원금을 초과합니다. 레버리지를 사용하거나, 손절 폭을 좁히거나, 리스크 비율을 낮추어야 합니다.',
+    regularStatus: '안전한 자금 관리 범위 내의 거래입니다.',
+    calculate: '계산하기',
+    clear: '초기화',
+    placeholderCapital: '총 자산 입력 (예: 10000000)',
+    placeholderRisk: '원금 대비 리스크 (예: 2)',
+    placeholderEntry: '진입 가격 (예: 50000)',
+    placeholderStopLoss: '손절 가격 (예: 47000)',
+    invalidStopLoss: '❌ 오류: 매수 시 손절가는 진입가보다 낮아야 합니다.',
+    capitalWeight: '원금 대비 비중',
+  },
+  en: {
+    capitalSetting: 'Capital Settings',
+    totalCapital: 'Total Capital',
+    riskPercent: 'Risk Ratio (%)',
+    priceSetting: 'Trade Plan',
+    entryPrice: 'Entry Price',
+    stopLossPrice: 'Stop-Loss Price',
+    results: 'Results',
+    riskAmount: 'Allowed Loss Amount',
+    sharesToBuy: 'Recommended Shares',
+    totalCost: 'Total Position Value',
+    leverageWarning: '⚠️ Warning: Position value exceeds total capital. Leverage is required, or you should narrow the stop-loss range or decrease the risk ratio.',
+    regularStatus: 'This trade is within safe money management limits.',
+    calculate: 'Calculate',
+    clear: 'Clear',
+    placeholderCapital: 'Total Capital (e.g. 10000000)',
+    placeholderRisk: 'Risk of Capital (e.g. 2)',
+    placeholderEntry: 'Entry Price (e.g. 50000)',
+    placeholderStopLoss: 'Stop Price (e.g. 47000)',
+    invalidStopLoss: '❌ Error: Stop-Loss price must be lower than Entry Price.',
+    capitalWeight: 'Portfolio Weight',
+  }
+};
+
+const t = i18n[lang] || i18n['ko'];
+---
+
+<div class="tool-stock-position">
+  <div class="calculator-grid">
+    <!-- 입력 영역 -->
+    <div class="input-section">
+      <div class="input-group-wrapper">
+        <h3>{t.capitalSetting}</h3>
+        <div class="input-group">
+          <label for="total-capital">{t.totalCapital}</label>
+          <input type="number" id="total-capital" placeholder={t.placeholderCapital} min="0" step="any" />
+        </div>
+        <div class="input-group">
+          <label for="risk-percent">{t.riskPercent}</label>
+          <input type="number" id="risk-percent" placeholder={t.placeholderRisk} min="0" max="100" step="any" value="2" />
+        </div>
+      </div>
+
+      <div class="input-group-wrapper">
+        <h3>{t.priceSetting}</h3>
+        <div class="input-group">
+          <label for="entry-price">{t.entryPrice}</label>
+          <input type="number" id="entry-price" placeholder={t.placeholderEntry} min="0" step="any" />
+        </div>
+        <div class="input-group">
+          <label for="stop-loss">{t.stopLossPrice}</label>
+          <input type="number" id="stop-loss" placeholder={t.placeholderStopLoss} min="0" step="any" />
+        </div>
+      </div>
+
+      <div class="action-buttons">
+        <button id="calc-btn" class="btn-primary">{t.calculate}</button>
+        <button id="clear-btn" class="btn-secondary">{t.clear}</button>
+      </div>
+    </div>
+
+    <!-- 결과 영역 -->
+    <div class="result-section">
+      <h3>{t.results}</h3>
+      
+      <div id="error-message" class="message-box error" style="display: none;"></div>
+      <div id="warning-message" class="message-box warning" style="display: none;"></div>
+      
+      <div class="result-box">
+        <span class="result-label">{t.sharesToBuy}</span>
+        <span class="result-value accent" id="res-shares">0</span>
+      </div>
+      <div class="result-box">
+        <span class="result-label">{t.totalCost}</span>
+        <span class="result-value" id="res-total-cost">0</span>
+      </div>
+      <div class="result-box-row">
+        <div class="result-box half">
+          <span class="result-label">{t.riskAmount}</span>
+          <span class="result-value danger-text" id="res-risk-amt">0</span>
+        </div>
+        <div class="result-box half">
+          <span class="result-label">{t.capitalWeight}</span>
+          <span class="result-value" id="res-weight">0%</span>
+        </div>
+      </div>
+      
+      <!-- 시각화 바 -->
+      <div class="visual-progress-wrapper" style="display: none;" id="progress-wrapper">
+        <div class="visual-labels">
+          <span>{t.stopLossPrice} (<span id="progress-stop-val">0</span>)</span>
+          <span>{t.entryPrice} (<span id="progress-entry-val">0</span>)</span>
+        </div>
+        <div class="visual-bar-container">
+          <div class="visual-bar-fill red"></div>
+          <div class="visual-bar-marker" id="progress-marker"></div>
+        </div>
+        <small class="visual-hint" id="progress-hint"></small>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .tool-stock-position {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .calculator-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  @media (min-width: 768px) {
+    .calculator-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .input-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .input-group-wrapper {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+  }
+
+  h3 {
+    margin: 0 0 1.25rem 0;
+    font-size: 1.125rem;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.75rem;
+  }
+
+  .input-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1rem;
+  }
+
+  .input-group:last-child {
+    margin-bottom: 0;
+  }
+
+  label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+  }
+
+  input {
+    width: 100%;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius);
+    font-size: 1rem;
+    transition: all 0.2s;
+  }
+
+  input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+  }
+
+  /* Chrome, Safari, Edge, Opera */
+  input::-webkit-outer-spin-button,
+  input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  /* Firefox */
+  input[type=number] {
+    -moz-appearance: textfield;
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 1rem;
+  }
+
+  button {
+    flex: 1;
+    padding: 0.875rem;
+    border-radius: var(--radius);
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.2s;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+    border: none;
+  }
+
+  .btn-primary:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+  }
+
+  .btn-secondary:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+
+  .result-section {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .result-box {
+    background: var(--bg-hover);
+    padding: 1.25rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .result-box-row {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .result-box.half {
+    flex: 1;
+  }
+
+  .result-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+  }
+
+  .result-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    word-break: break-all;
+  }
+
+  .result-value.accent {
+    color: var(--accent);
+  }
+
+  .danger-text {
+    color: #ef4444;
+  }
+
+  .message-box {
+    padding: 1rem;
+    border-radius: var(--radius);
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+
+  .message-box.error {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #fca5a5;
+  }
+
+  .message-box.warning {
+    background: rgba(234, 179, 8, 0.1);
+    border: 1px solid rgba(234, 179, 8, 0.3);
+    color: #fef08a;
+  }
+
+  /* 시각화 바 스타일 */
+  .visual-progress-wrapper {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+
+  .visual-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+  }
+
+  .visual-bar-container {
+    height: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 9999px;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+  }
+
+  .visual-bar-fill.red {
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(to right, #ef4444, var(--accent));
+  }
+
+  .visual-hint {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-align: center;
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // Inputs
+    const capitalInput = document.getElementById('total-capital') as HTMLInputElement;
+    const riskInput = document.getElementById('risk-percent') as HTMLInputElement;
+    const entryInput = document.getElementById('entry-price') as HTMLInputElement;
+    const stopLossInput = document.getElementById('stop-loss') as HTMLInputElement;
+
+    // Outputs
+    const resShares = document.getElementById('res-shares');
+    const resTotalCost = document.getElementById('res-total-cost');
+    const resRiskAmt = document.getElementById('res-risk-amt');
+    const resWeight = document.getElementById('res-weight');
+
+    // Messages & Progress
+    const errMsg = document.getElementById('error-message');
+    const warnMsg = document.getElementById('warning-message');
+    const progressWrapper = document.getElementById('progress-wrapper');
+    const progressStopVal = document.getElementById('progress-stop-val');
+    const progressEntryVal = document.getElementById('progress-entry-val');
+    const progressHint = document.getElementById('progress-hint');
+
+    // Buttons
+    const calcBtn = document.getElementById('calc-btn');
+    const clearBtn = document.getElementById('clear-btn');
+
+    const formatNumber = (num: number, digits = 0) => {
+      return new Intl.NumberFormat(undefined, { 
+        maximumFractionDigits: digits 
+      }).format(num);
+    };
+
+    const isKo = document.documentElement.lang === 'ko';
+
+    const calculate = () => {
+      // Reset errors & warnings
+      if (errMsg) { errMsg.style.display = 'none'; errMsg.textContent = ''; }
+      if (warnMsg) { warnMsg.style.display = 'none'; warnMsg.textContent = ''; }
+      if (progressWrapper) progressWrapper.style.display = 'none';
+
+      const capital = parseFloat(capitalInput.value) || 0;
+      const riskPercent = parseFloat(riskInput.value) || 0;
+      const entryPrice = parseFloat(entryInput.value) || 0;
+      const stopLoss = parseFloat(stopLossInput.value) || 0;
+
+      if (capital <= 0 || riskPercent <= 0 || entryPrice <= 0 || stopLoss <= 0) {
+        return;
+      }
+
+      if (stopLoss >= entryPrice) {
+        if (errMsg) {
+          errMsg.textContent = isKo 
+            ? '❌ 오류: 매수 시 손절가는 진입가보다 낮아야 합니다.' 
+            : '❌ Error: Stop-Loss price must be lower than Entry Price.';
+          errMsg.style.display = 'block';
+        }
+        return;
+      }
+
+      const riskAmt = capital * (riskPercent / 100);
+      const priceDiff = entryPrice - stopLoss;
+      const shares = riskAmt / priceDiff;
+      const totalCost = shares * entryPrice;
+      const weight = (totalCost / capital) * 100;
+
+      // Outputs display
+      if (resShares) resShares.textContent = formatNumber(shares, 1);
+      if (resTotalCost) resTotalCost.textContent = formatNumber(totalCost);
+      if (resRiskAmt) resRiskAmt.textContent = formatNumber(riskAmt);
+      if (resWeight) resWeight.textContent = weight.toFixed(1) + '%';
+
+      // Warning if cost exceeds capital
+      if (totalCost > capital) {
+        if (warnMsg) {
+          warnMsg.textContent = isKo
+            ? '⚠️ 경고: 필요 투자 금액이 원금을 초과합니다. 레버리지를 사용하거나, 손절 범위를 줄이거나, 감수할 리스크 비율을 낮춰야 합니다.'
+            : '⚠️ Warning: Position value exceeds total capital. Leverage is required, or you must narrow the stop-loss range or decrease the risk ratio.';
+          warnMsg.style.display = 'block';
+        }
+      }
+
+      // Visual progress display
+      if (progressWrapper && progressStopVal && progressEntryVal && progressHint) {
+        progressStopVal.textContent = formatNumber(stopLoss);
+        progressEntryVal.textContent = formatNumber(entryPrice);
+        const percentLoss = ((priceDiff / entryPrice) * 100).toFixed(1);
+        progressHint.textContent = isKo
+          ? `진입가 대비 손절폭: -${percentLoss}% (손실 시 최대 리스크 비율은 원금의 ${riskPercent}%입니다.)`
+          : `Stop-loss range: -${percentLoss}% (Max risk is ${riskPercent}% of capital.)`;
+        progressWrapper.style.display = 'block';
+      }
+    };
+
+    const clear = () => {
+      capitalInput.value = '';
+      riskInput.value = '2';
+      entryInput.value = '';
+      stopLossInput.value = '';
+      
+      if (resShares) resShares.textContent = '0';
+      if (resTotalCost) resTotalCost.textContent = '0';
+      if (resRiskAmt) resRiskAmt.textContent = '0';
+      if (resWeight) resWeight.textContent = '0%';
+
+      if (errMsg) { errMsg.style.display = 'none'; errMsg.textContent = ''; }
+      if (warnMsg) { warnMsg.style.display = 'none'; warnMsg.textContent = ''; }
+      if (progressWrapper) progressWrapper.style.display = 'none';
+    };
+
+    if (calcBtn) calcBtn.addEventListener('click', calculate);
+    if (clearBtn) clearBtn.addEventListener('click', clear);
+
+    // Enter key support
+    const inputs = [capitalInput, riskInput, entryInput, stopLossInput];
+    inputs.forEach(input => {
+      if (input) {
+        input.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') {
+            calculate();
+          }
+        });
+      }
+    });
+  });
+</script>

@@ -1,0 +1,733 @@
+---
+import { getLangFromUrl } from '../../i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+
+const i18n = {
+  ko: {
+    stockInfo: '기본 정보',
+    avgPrice: '평균 매수 단가',
+    totalQty: '보유 수량',
+    splitPlan: '분할 매도 계획',
+    step: '차수',
+    targetYield: '목표 수익률 (%)',
+    sellWeight: '매도 비중 (%)',
+    targetPrice: '목표 매도 주가',
+    sellQty: '매도 수량',
+    profit: '예상 익절 수익',
+    addRow: '+ 차수 추가',
+    deleteRow: '삭제',
+    results: '계산 결과',
+    totalRevenue: '총 매도 금액',
+    totalProfit: '총 예상 수익금',
+    avgYield: '평균 실현 수익률',
+    remainingShares: '잔여 보유 수량',
+    weightWarning: '⚠️ 경고: 매도 비중의 합이 100%를 초과했습니다 (현재: {sum}%).',
+    weightNotice: '💡 안내: 매도 비중의 합이 100% 미만입니다 (현재: {sum}%, 잔여 비중: {rem}%).',
+    calculate: '계산하기',
+    clear: '초기화',
+    placeholderPrice: '단가 입력 (예: 50000)',
+    placeholderQty: '수량 입력 (예: 100)',
+    placeholderYield: '수익률',
+    placeholderWeight: '비중',
+  },
+  en: {
+    stockInfo: 'Basic Stock Info',
+    avgPrice: 'Average Buy Price',
+    totalQty: 'Total Quantity',
+    splitPlan: 'Split Sell Plan',
+    step: 'Step',
+    targetYield: 'Target Yield (%)',
+    sellWeight: 'Sell Weight (%)',
+    targetPrice: 'Target Sell Price',
+    sellQty: 'Shares to Sell',
+    profit: 'Expected Profit',
+    addRow: '+ Add Step',
+    deleteRow: 'Delete',
+    results: 'Results',
+    totalRevenue: 'Total Expected Sales',
+    totalProfit: 'Total Expected Profit',
+    avgYield: 'Weighted Avg Yield',
+    remainingShares: 'Remaining Shares',
+    weightWarning: '⚠️ Warning: Total sell weight exceeds 100% (Current: {sum}%).',
+    weightNotice: '💡 Notice: Total sell weight is under 100% (Current: {sum}%, Remaining: {rem}%).',
+    calculate: 'Calculate',
+    clear: 'Clear',
+    placeholderPrice: 'Buy Price (e.g. 50000)',
+    placeholderQty: 'Quantity (e.g. 100)',
+    placeholderYield: 'Yield',
+    placeholderWeight: 'Weight',
+  }
+};
+
+const t = i18n[lang] || i18n['ko'];
+---
+
+<div class="tool-stock-split-sell">
+  <div class="calculator-grid">
+    <!-- 입력 영역 -->
+    <div class="input-section">
+      <div class="input-group-wrapper">
+        <h3>{t.stockInfo}</h3>
+        <div class="input-group">
+          <label for="avg-price">{t.avgPrice}</label>
+          <input type="number" id="avg-price" placeholder={t.placeholderPrice} min="0" step="any" />
+        </div>
+        <div class="input-group">
+          <label for="total-qty">{t.totalQty}</label>
+          <input type="number" id="total-qty" placeholder={t.placeholderQty} min="0" step="any" />
+        </div>
+      </div>
+
+      <div class="input-group-wrapper">
+        <div class="plan-header">
+          <h3>{t.splitPlan}</h3>
+          <button id="add-row-btn" class="btn-secondary small-btn">{t.addRow}</button>
+        </div>
+        
+        <div class="table-container">
+          <table id="split-table">
+            <thead>
+              <tr>
+                <th>{t.step}</th>
+                <th>{t.targetYield}</th>
+                <th>{t.sellWeight}</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="split-tbody">
+              <!-- Default Rows (Step 1, 2, 3) -->
+              <tr class="split-row">
+                <td class="step-num">1</td>
+                <td><input type="number" class="row-yield" value="5" placeholder={t.placeholderYield} step="any" /></td>
+                <td><input type="number" class="row-weight" value="30" placeholder={t.placeholderWeight} step="any" /></td>
+                <td><button class="delete-row-btn">🗑️</button></td>
+              </tr>
+              <tr class="split-row">
+                <td class="step-num">2</td>
+                <td><input type="number" class="row-yield" value="10" placeholder={t.placeholderYield} step="any" /></td>
+                <td><input type="number" class="row-weight" value="40" placeholder={t.placeholderWeight} step="any" /></td>
+                <td><button class="delete-row-btn">🗑️</button></td>
+              </tr>
+              <tr class="split-row">
+                <td class="step-num">3</td>
+                <td><input type="number" class="row-yield" value="15" placeholder={t.placeholderYield} step="any" /></td>
+                <td><input type="number" class="row-weight" value="30" placeholder={t.placeholderWeight} step="any" /></td>
+                <td><button class="delete-row-btn">🗑️</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        
+        <div id="weight-alert" class="weight-status-msg"></div>
+      </div>
+
+      <div class="action-buttons">
+        <button id="calc-btn" class="btn-primary">{t.calculate}</button>
+        <button id="clear-btn" class="btn-secondary">{t.clear}</button>
+      </div>
+    </div>
+
+    <!-- 결과 영역 -->
+    <div class="result-section">
+      <h3>{t.results}</h3>
+      
+      <!-- 비중 차트 시각화 -->
+      <div class="weight-bar-wrapper">
+        <label>매도 비중 구성 (Sell Weight Stack)</label>
+        <div class="weight-bar-container" id="weight-bar-stack">
+          <!-- Dynamically filled with CSS bar items -->
+        </div>
+      </div>
+
+      <div class="result-box">
+        <span class="result-label">{t.totalRevenue}</span>
+        <span class="result-value" id="res-total-rev">0</span>
+      </div>
+      <div class="result-box">
+        <span class="result-label">{t.totalProfit}</span>
+        <span class="result-value accent" id="res-total-profit">0</span>
+      </div>
+      <div class="result-box-row">
+        <div class="result-box half">
+          <span class="result-label">{t.avgYield}</span>
+          <span class="result-value" id="res-avg-yield">0%</span>
+        </div>
+        <div class="result-box half">
+          <span class="result-label">{t.remainingShares}</span>
+          <span class="result-value" id="res-remaining-qty">0</span>
+        </div>
+      </div>
+
+      <!-- 세부 스케줄 테이블 -->
+      <div class="detail-schedule-wrapper">
+        <label>차수별 매도 단가 및 예상 익절 내역</label>
+        <div class="detail-table-container">
+          <table class="detail-table">
+            <thead>
+              <tr>
+                <th>{t.step}</th>
+                <th>{t.targetPrice}</th>
+                <th>{t.sellQty}</th>
+                <th>{t.profit}</th>
+              </tr>
+            </thead>
+            <tbody id="detail-tbody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .tool-stock-split-sell {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .calculator-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  @media (min-width: 768px) {
+    .calculator-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .input-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .input-group-wrapper {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+  }
+
+  h3 {
+    margin: 0;
+    font-size: 1.125rem;
+    color: var(--text-primary);
+  }
+
+  .plan-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .input-group {
+    display: flex;
+    flex-direction: column;
+    margin-top: 1rem;
+  }
+
+  label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+  }
+
+  input {
+    width: 100%;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius);
+    font-size: 1rem;
+    transition: all 0.2s;
+  }
+
+  input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+  }
+
+  /* Table styling inside inputs */
+  .table-container {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  th {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    text-align: left;
+    padding-bottom: 0.5rem;
+    font-weight: 500;
+  }
+
+  td {
+    padding: 0.5rem 0.25rem;
+    vertical-align: middle;
+  }
+
+  td input {
+    padding: 0.5rem;
+    font-size: 0.875rem;
+  }
+
+  .step-num {
+    text-align: center;
+    font-weight: bold;
+    color: var(--accent);
+    width: 30px;
+  }
+
+  .delete-row-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0.25rem;
+    opacity: 0.7;
+  }
+
+  .delete-row-btn:hover {
+    opacity: 1;
+  }
+
+  .small-btn {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.75rem;
+    border-radius: var(--radius);
+    font-weight: bold;
+    border: 1px solid var(--border);
+  }
+
+  .weight-status-msg {
+    margin-top: 1rem;
+    font-size: 0.75rem;
+    line-height: 1.4;
+  }
+
+  .weight-status-msg.error {
+    color: #fca5a5;
+  }
+
+  .weight-status-msg.notice {
+    color: #93c5fd;
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 1rem;
+  }
+
+  button {
+    padding: 0.875rem;
+    border-radius: var(--radius);
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.2s;
+  }
+
+  .btn-primary {
+    flex: 1;
+    background: var(--accent);
+    color: #000;
+    border: none;
+  }
+
+  .btn-primary:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+  }
+
+  .btn-secondary:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+
+  /* Result Area styling */
+  .result-section {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .result-box {
+    background: var(--bg-hover);
+    padding: 1.25rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .result-box-row {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .result-box.half {
+    flex: 1;
+  }
+
+  .result-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    word-break: break-all;
+  }
+
+  .result-value.accent {
+    color: var(--accent);
+  }
+
+  /* Stacked Bar visualization */
+  .weight-bar-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .weight-bar-wrapper label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+  }
+
+  .weight-bar-container {
+    height: 18px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    display: flex;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .weight-bar-segment {
+    height: 100%;
+    color: #000;
+    font-size: 0.7rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: width 0.3s ease;
+  }
+
+  .segment-1 { background-color: #00DC82; }
+  .segment-2 { background-color: #36E4DA; }
+  .segment-3 { background-color: #3b82f6; }
+  .segment-4 { background-color: #8b5cf6; }
+  .segment-5 { background-color: #ec4899; }
+  .segment-remaining { background-color: rgba(255, 255, 255, 0.15); color: var(--text-secondary); }
+
+  /* Schedule Table styling */
+  .detail-schedule-wrapper {
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .detail-schedule-wrapper label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+  }
+
+  .detail-table-container {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .detail-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .detail-table th {
+    background: var(--bg-hover);
+    padding: 0.6rem 0.8rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .detail-table td {
+    padding: 0.6rem 0.8rem;
+    font-size: 0.825rem;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .detail-table tr:last-child td {
+    border-bottom: none;
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // Inputs
+    const avgPriceInput = document.getElementById('avg-price') as HTMLInputElement;
+    const totalQtyInput = document.getElementById('total-qty') as HTMLInputElement;
+    const splitTbody = document.getElementById('split-tbody');
+    const addRowBtn = document.getElementById('add-row-btn');
+    const weightAlert = document.getElementById('weight-alert');
+
+    // Outputs
+    const resTotalRev = document.getElementById('res-total-rev');
+    const resTotalProfit = document.getElementById('res-total-profit');
+    const resAvgYield = document.getElementById('res-avg-yield');
+    const resRemainingQty = document.getElementById('res-remaining-qty');
+    const weightBarStack = document.getElementById('weight-bar-stack');
+    const detailTbody = document.getElementById('detail-tbody');
+
+    // Buttons
+    const calcBtn = document.getElementById('calc-btn');
+    const clearBtn = document.getElementById('clear-btn');
+
+    const formatNumber = (num: number, digits = 0) => {
+      return new Intl.NumberFormat(undefined, { 
+        maximumFractionDigits: digits 
+      }).format(num);
+    };
+
+    const isKo = document.documentElement.lang === 'ko';
+
+    // Update row index numbers
+    const updateRowNumbers = () => {
+      const rows = document.querySelectorAll('.split-row');
+      rows.forEach((row, index) => {
+        const stepTd = row.querySelector('.step-num');
+        if (stepTd) stepTd.textContent = String(index + 1);
+      });
+    };
+
+    // Add new plan step row
+    const addNewRow = () => {
+      const rowCount = document.querySelectorAll('.split-row').length;
+      if (rowCount >= 5) return; // Limit to 5 steps
+
+      const tr = document.createElement('tr');
+      tr.className = 'split-row';
+      tr.innerHTML = `
+        <td class="step-num">${rowCount + 1}</td>
+        <td><input type="number" class="row-yield" value="${(rowCount + 1) * 5}" placeholder="${isKo ? '수익률' : 'Yield'}" step="any" /></td>
+        <td><input type="number" class="row-weight" value="10" placeholder="${isKo ? '비중' : 'Weight'}" step="any" /></td>
+        <td><button class="delete-row-btn">🗑️</button></td>
+      `;
+
+      // Event listener for delete button
+      tr.querySelector('.delete-row-btn')?.addEventListener('click', () => {
+        tr.remove();
+        updateRowNumbers();
+        checkWeights();
+      });
+
+      // Add to tbody
+      splitTbody?.appendChild(tr);
+      checkWeights();
+    };
+
+    // Check total weight
+    const checkWeights = (): number => {
+      const rows = document.querySelectorAll('.split-row');
+      let totalWeight = 0;
+      rows.forEach(row => {
+        const weightInput = row.querySelector('.row-weight') as HTMLInputElement;
+        const weight = parseFloat(weightInput?.value) || 0;
+        totalWeight += weight;
+      });
+
+      if (!weightAlert) return totalWeight;
+
+      if (totalWeight > 100) {
+        weightAlert.className = 'weight-status-msg error';
+        weightAlert.textContent = isKo 
+          ? `⚠️ 경고: 매도 비중의 합이 100%를 초과했습니다 (현재: ${totalWeight}%).`
+          : `⚠️ Warning: Total sell weight exceeds 100% (Current: ${totalWeight}%).`;
+      } else if (totalWeight < 100) {
+        weightAlert.className = 'weight-status-msg notice';
+        weightAlert.textContent = isKo
+          ? `💡 안내: 매도 비중의 합이 100% 미만입니다 (현재: ${totalWeight}%, 잔여 비중: ${100 - totalWeight}%).`
+          : `💡 Notice: Total sell weight is under 100% (Current: ${totalWeight}%, Remaining: ${100 - totalWeight}%).`;
+      } else {
+        weightAlert.className = 'weight-status-msg';
+        weightAlert.textContent = '';
+      }
+
+      return totalWeight;
+    };
+
+    const calculate = () => {
+      const avgPrice = parseFloat(avgPriceInput.value) || 0;
+      const totalQty = parseFloat(totalQtyInput.value) || 0;
+
+      if (avgPrice <= 0 || totalQty <= 0) return;
+
+      const totalWeight = checkWeights();
+      const rows = document.querySelectorAll('.split-row');
+      
+      let totalRevenue = 0;
+      let totalProfit = 0;
+      let soldWeightSum = 0;
+      
+      // Clear output visual structures
+      if (weightBarStack) weightBarStack.innerHTML = '';
+      if (detailTbody) detailTbody.innerHTML = '';
+
+      rows.forEach((row, index) => {
+        const yieldInput = row.querySelector('.row-yield') as HTMLInputElement;
+        const weightInput = row.querySelector('.row-weight') as HTMLInputElement;
+        
+        const yieldVal = parseFloat(yieldInput?.value) || 0;
+        const weightVal = parseFloat(weightInput?.value) || 0;
+
+        if (weightVal <= 0) return;
+
+        const targetPrice = avgPrice * (1 + yieldVal / 100);
+        const sellQty = totalQty * (weightVal / 100);
+        const revenue = targetPrice * sellQty;
+        const profit = (targetPrice - avgPrice) * sellQty;
+
+        totalRevenue += revenue;
+        totalProfit += profit;
+        soldWeightSum += weightVal;
+
+        // Render schedule table row
+        if (detailTbody) {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td style="font-weight: bold; color: var(--accent);">${index + 1}차</td>
+            <td>${formatNumber(targetPrice)} 원</td>
+            <td>${formatNumber(sellQty, 1)} 주 (${weightVal}%)</td>
+            <td style="color: #00DC82; font-weight: 600;">+${formatNumber(profit)} 원</td>
+          `;
+          detailTbody.appendChild(tr);
+        }
+
+        // Render stack bar segment
+        if (weightBarStack) {
+          const div = document.createElement('div');
+          div.className = `weight-bar-segment segment-${(index % 5) + 1}`;
+          div.style.width = `${weightVal}%`;
+          div.textContent = `${index + 1}차 (${weightVal}%)`;
+          weightBarStack.appendChild(div);
+        }
+      });
+
+      // Handle remaining shares
+      const remainingQty = totalQty * (Math.max(0, 100 - soldWeightSum) / 100);
+      if (soldWeightSum < 100 && weightBarStack) {
+        const div = document.createElement('div');
+        div.className = 'weight-bar-segment segment-remaining';
+        div.style.width = `${100 - soldWeightSum}%`;
+        div.textContent = isKo ? `보유 (${(100 - soldWeightSum).toFixed(0)}%)` : `Keep (${(100 - soldWeightSum).toFixed(0)}%)`;
+        weightBarStack.appendChild(div);
+      }
+
+      const totalCostBasis = avgPrice * totalQty * (Math.min(100, soldWeightSum) / 100);
+      const avgRealizedYield = totalCostBasis > 0 ? (totalProfit / totalCostBasis) * 100 : 0;
+
+      // Outputs display
+      if (resTotalRev) resTotalRev.textContent = formatNumber(totalRevenue) + ' 원';
+      if (resTotalProfit) resTotalProfit.textContent = formatNumber(totalProfit) + ' 원';
+      if (resAvgYield) resAvgYield.textContent = avgRealizedYield.toFixed(2) + '%';
+      if (resRemainingQty) resRemainingQty.textContent = formatNumber(remainingQty, 1) + ' 주';
+    };
+
+    const clear = () => {
+      avgPriceInput.value = '';
+      totalQtyInput.value = '';
+      
+      // Restore default rows
+      if (splitTbody) {
+        splitTbody.innerHTML = `
+          <tr class="split-row">
+            <td class="step-num">1</td>
+            <td><input type="number" class="row-yield" value="5" placeholder="${isKo ? '수익률' : 'Yield'}" step="any" /></td>
+            <td><input type="number" class="row-weight" value="30" placeholder="${isKo ? '비중' : 'Weight'}" step="any" /></td>
+            <td><button class="delete-row-btn">🗑️</button></td>
+          </tr>
+          <tr class="split-row">
+            <td class="step-num">2</td>
+            <td><input type="number" class="row-yield" value="10" placeholder="${isKo ? '수익률' : 'Yield'}" step="any" /></td>
+            <td><input type="number" class="row-weight" value="40" placeholder="${isKo ? '비중' : 'Weight'}" step="any" /></td>
+            <td><button class="delete-row-btn">🗑️</button></td>
+          </tr>
+          <tr class="split-row">
+            <td class="step-num">3</td>
+            <td><input type="number" class="row-yield" value="15" placeholder="${isKo ? '수익률' : 'Yield'}" step="any" /></td>
+            <td><input type="number" class="row-weight" value="30" placeholder="${isKo ? '비중' : 'Weight'}" step="any" /></td>
+            <td><button class="delete-row-btn">🗑️</button></td>
+          </tr>
+        `;
+        
+        // Re-attach delete listeners
+        document.querySelectorAll('.delete-row-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            (e.target as HTMLElement).closest('tr')?.remove();
+            updateRowNumbers();
+            checkWeights();
+          });
+        });
+      }
+
+      if (resTotalRev) resTotalRev.textContent = '0 원';
+      if (resTotalProfit) resTotalProfit.textContent = '0 원';
+      if (resAvgYield) resAvgYield.textContent = '0%';
+      if (resRemainingQty) resRemainingQty.textContent = '0 주';
+      if (weightBarStack) weightBarStack.innerHTML = '';
+      if (detailTbody) detailTbody.innerHTML = '';
+      if (weightAlert) weightAlert.textContent = '';
+      
+      checkWeights();
+    };
+
+    // Attach click for standard rows
+    document.querySelectorAll('.delete-row-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        (e.target as HTMLElement).closest('tr')?.remove();
+        updateRowNumbers();
+        checkWeights();
+      });
+    });
+
+    // Attach listeners for weight changes to show alerts in real-time
+    splitTbody?.addEventListener('input', (e) => {
+      if ((e.target as HTMLElement).classList.contains('row-weight')) {
+        checkWeights();
+      }
+    });
+
+    if (addRowBtn) addRowBtn.addEventListener('click', addNewRow);
+    if (calcBtn) calcBtn.addEventListener('click', calculate);
+    if (clearBtn) clearBtn.addEventListener('click', clear);
+
+    // Run initial weight check
+    checkWeights();
+  });
+</script>

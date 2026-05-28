@@ -6,10 +6,17 @@ import Nav from '../components/Nav.astro';
 interface Props {
 	title: string;
 	description?: string;
+	keywords?: string[];
 }
 
-const { title, description = "Essential Tools for Web Developers" } = Astro.props;
+const { 
+  title, 
+  description = "웹 개발자를 위한 일상적인 개발 작업 도구 모음",
+  keywords = ["개발자 도구", "웹 툴", "계산기", "daily tools", "developer tools"]
+} = Astro.props;
 const lang = getLangFromUrl(Astro.url);
+const siteUrl = Astro.site ? Astro.site.toString() : 'https://dailytools26.github.io';
+const currentUrl = new URL(Astro.url.pathname, siteUrl).href;
 ---
 
 <!doctype html>
@@ -20,8 +27,24 @@ const lang = getLangFromUrl(Astro.url);
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<link rel="icon" href="/favicon.ico" />
 		<meta name="generator" content={Astro.generator} />
-		<meta name="description" content={description} />
+		
+		<!-- 기본 SEO 설정 -->
 		<title>{title} | DailyTools26</title>
+		<meta name="description" content={description} />
+		<meta name="keywords" content={keywords.join(', ')} />
+		
+		<!-- Open Graph / Facebook -->
+		<meta property="og:type" content="website" />
+		<meta property="og:url" content={currentUrl} />
+		<meta property="og:title" content={`${title} | DailyTools26`} />
+		<meta property="og:description" content={description} />
+		<meta property="og:locale" content={lang === 'ko' ? 'ko_KR' : 'en_US'} />
+		
+		<!-- Twitter -->
+		<meta property="twitter:card" content="summary" />
+		<meta property="twitter:url" content={currentUrl} />
+		<meta property="twitter:title" content={`${title} | DailyTools26`} />
+		<meta property="twitter:description" content={description} />
 	</head>
 	<body>
 		<Nav />

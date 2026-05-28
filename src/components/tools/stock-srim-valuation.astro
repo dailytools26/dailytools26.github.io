@@ -1,0 +1,566 @@
+---
+import { getLangFromUrl } from '../../i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+
+const i18n = {
+  ko: {
+    valuationSetting: '재무 지표 입력 (S-RIM)',
+    equity: '지배주주 자기자본 (원)',
+    roe: '예상 ROE (%)',
+    requiredYield: '요구수익률 (%)',
+    outstandingShares: '총 발행 주식 수',
+    currentPrice: '현재 주가 (선택사항)',
+    helpEquity: '💡 재무제표의 가장 최근 분기/연도 지배주주지분 값을 입력하세요.',
+    helpRoe: '💡 최근 3개년 ROE 평균 또는 올해 예상 ROE를 입력하세요.',
+    helpYield: '💡 한국 회사채 BBB- 5년 금리 등을 주로 요구수익률로 사용합니다.',
+    results: '적정 주가 산출 결과',
+    srimBasic: '적정 주가 (초과이익 지속)',
+    srim10Decay: '보수적 주가 (초과이익 10% 감소)',
+    srim20Decay: '매우 보수적 주가 (초과이익 20% 감소)',
+    safetyMargin: '안전 마진 비율',
+    valuationState: '현재 주가 평가 상태',
+    strongBuy: '🟢 극 저평가 (안전 마진 확보)',
+    buy: '🟢 저평가',
+    hold: '🟡 적정 가격대',
+    sell: '🔴 고평가',
+    calcBtn: '적정 주가 계산',
+    clearBtn: '초기화',
+    placeholderEquity: '자기자본 입력 (예: 500000000000)',
+    placeholderRoe: '예상 ROE (예: 12)',
+    placeholderYield: '요구수익률 (예: 5.8)',
+    placeholderShares: '발행주식수 (예: 5000000)',
+    placeholderCurrentPrice: '현재 주가 입력 (예: 45000)',
+  },
+  en: {
+    valuationSetting: 'Financial Data Input (S-RIM)',
+    equity: 'Equity (Attributable to Parent)',
+    roe: 'Estimated ROE (%)',
+    requiredYield: 'Required Yield (%)',
+    outstandingShares: 'Outstanding Shares',
+    currentPrice: 'Current Stock Price (Optional)',
+    helpEquity: '💡 Input the most recent equity belonging to the parent company.',
+    helpRoe: '💡 Input the 3-year average ROE or forecasted ROE.',
+    helpYield: '💡 Standard corporate bond yield is typically used as the required yield.',
+    results: 'Fair Value Estimation',
+    srimBasic: 'Fair Price (No profit decay)',
+    srim10Decay: 'Conservative Price (10% profit decay)',
+    srim20Decay: 'Very Conservative (20% profit decay)',
+    safetyMargin: 'Margin of Safety',
+    valuationState: 'Current Price Status',
+    strongBuy: '🟢 Strongly Undervalued (High Safety Margin)',
+    buy: '🟢 Undervalued',
+    hold: '🟡 Fair Value',
+    sell: '🔴 Overvalued',
+    calcBtn: 'Calculate Intrinsic Value',
+    clearBtn: 'Clear',
+    placeholderEquity: 'Total Equity (e.g. 500000000000)',
+    placeholderRoe: 'Forecast ROE (e.g. 12)',
+    placeholderYield: 'Required Yield (e.g. 5.8)',
+    placeholderShares: 'Shares Outstanding (e.g. 5000000)',
+    placeholderCurrentPrice: 'Current Price (e.g. 45000)',
+  }
+};
+
+const t = i18n[lang] || i18n['ko'];
+---
+
+<div class="tool-stock-srim">
+  <div class="calculator-grid">
+    <!-- 입력 영역 -->
+    <div class="input-section">
+      <div class="input-group-wrapper">
+        <h3>{t.valuationSetting}</h3>
+        <div class="input-group">
+          <label for="srim-equity">{t.equity}</label>
+          <input type="number" id="srim-equity" placeholder={t.placeholderEquity} min="0" step="any" value="1000000000000" />
+          <small class="input-help">{t.helpEquity}</small>
+        </div>
+        <div class="input-group-row">
+          <div class="input-group half">
+            <label for="srim-roe">{t.roe}</label>
+            <input type="number" id="srim-roe" placeholder={t.placeholderRoe} min="0" step="any" value="12" />
+          </div>
+          <div class="input-group half">
+            <label for="srim-yield">{t.requiredYield}</label>
+            <input type="number" id="srim-yield" placeholder={t.placeholderYield} min="0.1" step="any" value="5.8" />
+          </div>
+        </div>
+        <small class="input-help">{t.helpRoe} / {t.helpYield}</small>
+        
+        <div class="input-group-row" style="margin-top: 1rem;">
+          <div class="input-group half">
+            <label for="srim-shares">{t.outstandingShares}</label>
+            <input type="number" id="srim-shares" placeholder={t.placeholderShares} min="1" value="10000000" />
+          </div>
+          <div class="input-group half">
+            <label for="srim-current">{t.currentPrice}</label>
+            <input type="number" id="srim-current" placeholder={t.placeholderCurrentPrice} min="0" value="85000" />
+          </div>
+        </div>
+      </div>
+
+      <div class="action-buttons">
+        <button id="calc-btn" class="btn-primary">{t.calcBtn}</button>
+        <button id="clear-btn" class="btn-secondary">{t.clearBtn}</button>
+      </div>
+    </div>
+
+    <!-- 결과 영역 -->
+    <div class="result-section">
+      <h3>{t.results}</h3>
+
+      <!-- 밸류에이션 평가 영역 및 안전마진 -->
+      <div id="valuation-status-wrapper" class="valuation-status-box" style="display: none;">
+        <span class="status-title">{t.valuationState}</span>
+        <span class="status-value" id="res-status-text">-</span>
+        <div class="gauge-container">
+          <div class="gauge-segment strong-undervalued"></div>
+          <div class="gauge-segment undervalued"></div>
+          <div class="gauge-segment fair"></div>
+          <div class="gauge-segment overvalued"></div>
+          <div class="gauge-cursor" id="gauge-cursor-indicator"></div>
+        </div>
+        <div class="gauge-labels">
+          <span id="label-val-20">20% 감쇄</span>
+          <span id="label-val-10">10% 감쇄</span>
+          <span id="label-val-basic">적정 주가</span>
+        </div>
+      </div>
+
+      <div class="result-box highlighted">
+        <span class="result-label">{t.srimBasic}</span>
+        <span class="result-value accent" id="res-price-basic">0 원</span>
+      </div>
+      <div class="result-box">
+        <span class="result-label">{t.srim10Decay}</span>
+        <span class="result-value" id="res-price-10">0 원</span>
+      </div>
+      <div class="result-box">
+        <span class="result-label">{t.srim20Decay}</span>
+        <span class="result-value" id="res-price-20">0 원</span>
+      </div>
+
+      <div class="result-box-row">
+        <div class="result-box full">
+          <span class="result-label">{t.safetyMargin}</span>
+          <span class="result-value" id="res-safety-margin">0%</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .tool-stock-srim {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .calculator-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  @media (min-width: 768px) {
+    .calculator-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .input-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .input-group-wrapper {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+  }
+
+  h3 {
+    margin: 0 0 1.25rem 0;
+    font-size: 1.125rem;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.75rem;
+  }
+
+  .input-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1rem;
+  }
+
+  .input-group:last-child {
+    margin-bottom: 0;
+  }
+
+  .input-group-row {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .input-group.half {
+    flex: 1;
+    margin-bottom: 0;
+  }
+
+  label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+  }
+
+  input {
+    width: 100%;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius);
+    font-size: 1rem;
+    transition: all 0.2s;
+  }
+
+  input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+  }
+
+  .input-help {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 0.25rem;
+    line-height: 1.4;
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 1rem;
+  }
+
+  button {
+    flex: 1;
+    padding: 0.875rem;
+    border-radius: var(--radius);
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.2s;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+    border: none;
+  }
+
+  .btn-primary:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+  }
+
+  .btn-secondary:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+
+  .result-section {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .result-box {
+    background: var(--bg-hover);
+    padding: 1.25rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .result-box.highlighted {
+    background: rgba(0, 220, 130, 0.03);
+    border-color: rgba(0, 220, 130, 0.2);
+  }
+
+  .result-box-row {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .result-box.full {
+    flex: 1;
+  }
+
+  .result-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+  }
+
+  .result-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    word-break: break-all;
+  }
+
+  .result-value.accent {
+    color: var(--accent);
+  }
+
+  /* Valuation gauge visualization */
+  .valuation-status-box {
+    background: var(--bg-hover);
+    padding: 1.25rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+
+  .status-title {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.25rem;
+  }
+
+  .status-value {
+    font-size: 1.25rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+  }
+
+  .gauge-container {
+    height: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 9999px;
+    display: flex;
+    overflow: visible;
+    position: relative;
+    margin-bottom: 0.5rem;
+  }
+
+  .gauge-segment {
+    height: 100%;
+  }
+
+  .gauge-segment.strong-undervalued {
+    width: 25%;
+    background-color: #10b981; /* Green */
+    border-top-left-radius: 9999px;
+    border-bottom-left-radius: 9999px;
+  }
+
+  .gauge-segment.undervalued {
+    width: 25%;
+    background-color: #34d399; /* Light green */
+  }
+
+  .gauge-segment.fair {
+    width: 25%;
+    background-color: #f59e0b; /* Yellow */
+  }
+
+  .gauge-segment.overvalued {
+    width: 25%;
+    background-color: #ef4444; /* Red */
+    border-top-right-radius: 9999px;
+    border-bottom-right-radius: 9999px;
+  }
+
+  .gauge-cursor {
+    width: 4px;
+    height: 20px;
+    background-color: #ffffff;
+    border: 1px solid #000000;
+    position: absolute;
+    top: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 2px;
+    transition: left 0.3s ease;
+  }
+
+  .gauge-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.65rem;
+    color: var(--text-muted);
+  }
+
+  .gauge-labels span {
+    width: 33%;
+    text-align: center;
+  }
+
+  .gauge-labels span:first-child {
+    text-align: left;
+  }
+
+  .gauge-labels span:last-child {
+    text-align: right;
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // Inputs
+    const equityInput = document.getElementById('srim-equity') as HTMLInputElement;
+    const roeInput = document.getElementById('srim-roe') as HTMLInputElement;
+    const yieldInput = document.getElementById('srim-yield') as HTMLInputElement;
+    const sharesInput = document.getElementById('srim-shares') as HTMLInputElement;
+    const currentPriceInput = document.getElementById('srim-current') as HTMLInputElement;
+
+    // Outputs
+    const resPriceBasic = document.getElementById('res-price-basic');
+    const resPrice10 = document.getElementById('res-price-10');
+    const resPrice20 = document.getElementById('res-price-20');
+    const resSafetyMargin = document.getElementById('res-safety-margin');
+    const resStatusText = document.getElementById('res-status-text');
+    const valuationStatusWrapper = document.getElementById('valuation-status-wrapper');
+    const gaugeCursorIndicator = document.getElementById('gauge-cursor-indicator');
+    
+    // Gauge labels
+    const labelVal20 = document.getElementById('label-val-20');
+    const labelVal10 = document.getElementById('label-val-10');
+    const labelValBasic = document.getElementById('label-val-basic');
+
+    // Buttons
+    const calcBtn = document.getElementById('calc-btn');
+    const clearBtn = document.getElementById('clear-btn');
+
+    const formatNumber = (num: number, unit = ' 원') => {
+      if (num < 0) return '0 원';
+      return new Intl.NumberFormat().format(Math.round(num)) + unit;
+    };
+
+    const isKo = document.documentElement.lang === 'ko';
+
+    const calculate = () => {
+      const equity = parseFloat(equityInput.value) || 0;
+      const roe = parseFloat(roeInput.value) || 0;
+      const reqYield = parseFloat(yieldInput.value) || 0;
+      const shares = parseFloat(sharesInput.value) || 0;
+      const currentPrice = parseFloat(currentPriceInput.value) || 0;
+
+      if (equity <= 0 || reqYield <= 0 || shares <= 0) return;
+
+      const yieldDecimal = reqYield / 100;
+      const roeDecimal = roe / 100;
+
+      // S-RIM core equations
+      const excessEarnings = equity * (roeDecimal - yieldDecimal);
+
+      // 1. Basic (No decay)
+      let valueBasic = equity;
+      if (excessEarnings !== 0) {
+        valueBasic += excessEarnings / yieldDecimal;
+      }
+      const priceBasic = valueBasic / shares;
+
+      // 2. 10% Decay
+      let value10 = equity;
+      if (excessEarnings !== 0) {
+        value10 += (excessEarnings * 0.9) / (1 + yieldDecimal - 0.9);
+      }
+      const price10 = value10 / shares;
+
+      // 3. 20% Decay
+      let value20 = equity;
+      if (excessEarnings !== 0) {
+        value20 += (excessEarnings * 0.8) / (1 + yieldDecimal - 0.8);
+      }
+      const price20 = value20 / shares;
+
+      // Outputs display
+      if (resPriceBasic) resPriceBasic.textContent = formatNumber(priceBasic);
+      if (resPrice10) resPrice10.textContent = formatNumber(price10);
+      if (resPrice20) resPrice20.textContent = formatNumber(price20);
+
+      // Label updates
+      if (labelVal20) labelVal20.textContent = formatNumber(price20, '');
+      if (labelVal10) labelVal10.textContent = formatNumber(price10, '');
+      if (labelValBasic) labelValBasic.textContent = formatNumber(priceBasic, '');
+
+      // Handle Current Price evaluations
+      if (currentPrice > 0) {
+        // Safety margin calculation relative to basic target price
+        const safetyMargin = ((priceBasic - currentPrice) / priceBasic) * 100;
+        if (resSafetyMargin) {
+          resSafetyMargin.textContent = safetyMargin.toFixed(1) + '%';
+          resSafetyMargin.className = `result-value ${safetyMargin >= 0 ? 'success-text' : 'danger-text'}`;
+        }
+
+        // Valuation assessment & gauge position
+        let statusText = '';
+        let cursorPercent = 50; // default middle
+
+        if (currentPrice < price20) {
+          statusText = isKo ? t.ko.strongBuy : t.en.strongBuy;
+          // Scale from 0 to price20 maps to 0% to 25%
+          cursorPercent = (currentPrice / price20) * 25;
+        } else if (currentPrice < price10) {
+          statusText = isKo ? t.ko.buy : t.en.buy;
+          // Scale from price20 to price10 maps to 25% to 50%
+          const pctInRange = (currentPrice - price20) / (price10 - price20);
+          cursorPercent = 25 + pctInRange * 25;
+        } else if (currentPrice < priceBasic) {
+          statusText = isKo ? t.ko.hold : t.en.hold;
+          // Scale from price10 to priceBasic maps to 50% to 75%
+          const pctInRange = (currentPrice - price10) / (priceBasic - price10);
+          cursorPercent = 50 + pctInRange * 25;
+        } else {
+          statusText = isKo ? t.ko.sell : t.en.sell;
+          // Scale above priceBasic maps to 75% to 100%
+          const pctInRange = Math.min(1, (currentPrice - priceBasic) / priceBasic);
+          cursorPercent = 75 + pctInRange * 25;
+        }
+
+        // Clamp cursor
+        cursorPercent = Math.max(2, Math.min(98, cursorPercent));
+
+        if (resStatusText) resStatusText.textContent = statusText;
+        if (gaugeCursorIndicator) gaugeCursorIndicator.style.left = `${cursorPercent}%`;
+        if (valuationStatusWrapper) valuationStatusWrapper.style.display = 'flex';
+      } else {
+        if (valuationStatusWrapper) valuationStatusWrapper.style.display = 'none';
+        if (resSafetyMargin) resSafetyMargin.textContent = '0%';
+      }
+    };
+
+    const clear = () => {
+      equityInput.value = '1000000000000';
+      roeInput.value = '12';
+      yieldInput.value = '5.8';
+      sharesInput.value = '10000000';
+      currentPriceInput.value = '85000';
+
+      calculate();
+    };
+
+    if (calcBtn) calcBtn.addEventListener('click', calculate);
+    if (clearBtn) clearBtn.addEventListener('click', clear);
+
+    // Initial calculation
+    calculate();
+  });
+</script>

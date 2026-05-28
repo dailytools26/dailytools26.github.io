@@ -27,7 +27,7 @@ const toolName = tool.name[lang] || tool.name['ko'];
         </svg>
       </li>
       <li class="breadcrumb-item">
-        <span class="breadcrumb-current">{categoryLabel}</span>
+        <a href={`${translatePath('/')}?category=${tool.category}`} class="breadcrumb-link">{categoryLabel}</a>
       </li>
       <li class="breadcrumb-separator">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

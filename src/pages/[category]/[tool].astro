@@ -16,6 +16,7 @@ const lang = getLangFromUrl(Astro.url);
 
 const title = tool.name[lang] || tool.name['ko'];
 const description = tool.description[lang] || tool.description['ko'];
+const keywords = tool.tags;
 
 // 동적 임포트로 해당 도구의 인터랙티브 컴포넌트를 가져옴
 // 도구 컴포넌트는 src/components/tools/[tool-id].astro 에 존재한다고 가정
@@ -28,7 +29,7 @@ try {
 }
 ---
 
-<Layout title={title} description={description}>
+<Layout title={title} description={description} keywords={keywords}>
   <Breadcrumb tool={tool} />
   
   <div class="container tool-container">

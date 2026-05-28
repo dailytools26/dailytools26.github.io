@@ -12,6 +12,7 @@ const translatePath = useTranslatedPath(lang);
 
 const name = tool.name[lang] || tool.name['ko'];
 const description = tool.description[lang] || tool.description['ko'];
+const categoryLabel = tool.categoryLabel[lang] || tool.categoryLabel['ko'];
 const href = translatePath(`/${tool.category}/${tool.id}`);
 ---
 
@@ -20,7 +21,10 @@ const href = translatePath(`/${tool.category}/${tool.id}`);
     <div class="icon-wrapper">
       <span class="tool-icon">{tool.icon}</span>
     </div>
-    {tool.featured && <span class="featured-badge">⭐</span>}
+    <div class="header-badges">
+      <span class="category-badge">{categoryLabel}</span>
+      {tool.featured && <span class="featured-badge" title="Featured">⭐</span>}
+    </div>
   </div>
   
   <h3 class="tool-name">{name}</h3>
@@ -81,6 +85,22 @@ const href = translatePath(`/${tool.category}/${tool.id}`);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     font-size: 1.5rem;
+  }
+
+  .header-badges {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .category-badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--accent);
+    background: var(--accent-glow);
+    padding: 0.25rem 0.6rem;
+    border-radius: 9999px;
+    border: 1px solid rgba(0, 220, 130, 0.2);
   }
 
   .featured-badge {

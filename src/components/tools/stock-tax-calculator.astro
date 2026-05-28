@@ -1,0 +1,565 @@
+---
+import { getLangFromUrl } from '../../i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+
+const i18n = {
+  ko: {
+    taxBasic: '양도세 기본 설정',
+    realizedGain: '올해 이미 실현된 순손익 (원)',
+    holdingSim: '미실현 손익 종목 추가 시뮬레이션',
+    ticker: '종목명',
+    buyPrice: '매수단가',
+    currentPrice: '현재가',
+    quantity: '수량',
+    unrealizedGain: '평가 손익',
+    addHolding: '+ 종목 추가',
+    results: '양도소득세 예상 결과',
+    totalGain: '최종 합산 양도손익',
+    deduction: '기본 공제 금액',
+    taxableAmt: '과세 표준 금액',
+    transferTax: '양도소득세 (20%)',
+    localTax: '지방소득세 (2%)',
+    totalTax: '예상 총 납부 세액 (22%)',
+    taxSavingTitle: '💡 연말 절세 가이드',
+    taxSavingNoTax: '현재 비과세 범위 내에 있습니다. 올해 추가로 세금 없이 실현 가능한 수익 한도는 **{limit} 원**입니다.',
+    taxSavingNeedLoss: '비과세 범위를 초과했습니다. 세금을 0원으로 만들기 위해 연말까지 타 종목에서 추가로 실현해야 할 손실 금액은 **{loss} 원**입니다.',
+    calculate: '양도세 계산하기',
+    clear: '초기화',
+    placeholderRealized: '올해 누적 실현 수익 (손실은 마이너스)',
+    placeholderTicker: '예: TSLA',
+    placeholderBuy: '매수 가격',
+    placeholderCurrent: '현재 가격',
+    placeholderQty: '주식 수량',
+  },
+  en: {
+    taxBasic: 'Tax Settings',
+    realizedGain: 'Already Realized Capital Gain/Loss',
+    holdingSim: 'Simulate Sale of Current Holdings',
+    ticker: 'Ticker',
+    buyPrice: 'Buy Price',
+    currentPrice: 'Current Price',
+    quantity: 'Quantity',
+    unrealizedGain: 'Unrealized Gain',
+    addHolding: '+ Add Stock',
+    results: 'Estimated Tax Results',
+    totalGain: 'Total Net Capital Gain',
+    deduction: 'Basic Deduction',
+    taxableAmt: 'Taxable Amount',
+    transferTax: 'Capital Gains Tax (20%)',
+    localTax: 'Local Tax (2%)',
+    totalTax: 'Total Estimated Tax (22%)',
+    taxSavingTitle: '💡 Tax-Saving Guide',
+    taxSavingNoTax: 'You are within the tax-free limit. You can realize an additional profit of **{limit}** without paying tax this year.',
+    taxSavingNeedLoss: 'You have exceeded the tax-free limit. To reduce your tax to 0, you should realize an additional loss of **{loss}** by year-end.',
+    calculate: 'Calculate Tax',
+    clear: 'Clear',
+    placeholderRealized: 'Accumulated gain (minus for loss)',
+    placeholderTicker: 'e.g. TSLA',
+    placeholderBuy: 'Buy Price',
+    placeholderCurrent: 'Current Price',
+    placeholderQty: 'Quantity',
+  }
+};
+
+const t = i18n[lang] || i18n['ko'];
+---
+
+<div class="tool-stock-tax">
+  <div class="calculator-grid">
+    <!-- 입력 영역 -->
+    <div class="input-section">
+      <div class="input-group-wrapper">
+        <h3>{t.taxBasic}</h3>
+        <div class="input-group">
+          <label for="realized-gain">{t.realizedGain}</label>
+          <input type="number" id="realized-gain" placeholder={t.placeholderRealized} step="any" value="1500000" />
+        </div>
+      </div>
+
+      <div class="input-group-wrapper">
+        <div class="plan-header">
+          <h3>{t.holdingSim}</h3>
+          <button id="add-stock-btn" class="btn-secondary small-btn">{t.addHolding}</button>
+        </div>
+        
+        <div class="table-container">
+          <table id="stock-table">
+            <thead>
+              <tr>
+                <th>{t.ticker}</th>
+                <th>{t.buyPrice}</th>
+                <th>{t.currentPrice}</th>
+                <th>{t.quantity}</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="stock-tbody">
+              <!-- Initial dynamic row -->
+              <tr class="stock-row">
+                <td><input type="text" class="row-ticker" value="AAPL" placeholder={t.placeholderTicker} /></td>
+                <td><input type="number" class="row-buy" value="150" placeholder={t.placeholderBuy} step="any" /></td>
+                <td><input type="number" class="row-current" value="180" placeholder={t.placeholderCurrent} step="any" /></td>
+                <td><input type="number" class="row-qty" value="100" placeholder={t.placeholderQty} step="any" /></td>
+                <td><button class="delete-row-btn">🗑️</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="action-buttons">
+        <button id="calc-btn" class="btn-primary">{t.calculate}</button>
+        <button id="clear-btn" class="btn-secondary">{t.clear}</button>
+      </div>
+    </div>
+
+    <!-- 결과 영역 -->
+    <div class="result-section">
+      <h3>{t.results}</h3>
+
+      <!-- 절세 가이드 카드 -->
+      <div class="tax-saving-card" id="tax-saving-wrapper" style="display: none;">
+        <span class="card-title">{t.taxSavingTitle}</span>
+        <p class="card-content" id="tax-saving-guide-text">-</p>
+      </div>
+
+      <div class="result-box">
+        <span class="result-label">{t.totalGain}</span>
+        <span class="result-value accent" id="res-total-gain">0 원</span>
+      </div>
+      
+      <div class="result-box-row">
+        <div class="result-box half">
+          <span class="result-label">{t.deduction}</span>
+          <span class="result-value" id="res-deduction">2,500,000 원</span>
+        </div>
+        <div class="result-box half">
+          <span class="result-label">{t.taxableAmt}</span>
+          <span class="result-value" id="res-taxable">0 원</span>
+        </div>
+      </div>
+
+      <div class="result-box-row">
+        <div class="result-box half">
+          <span class="result-label">{t.transferTax}</span>
+          <span class="result-value" id="res-transfer-tax">0 원</span>
+        </div>
+        <div class="result-box half">
+          <span class="result-label">{t.localTax}</span>
+          <span class="result-value" id="res-local-tax">0 원</span>
+        </div>
+      </div>
+
+      <div class="result-box highlighted">
+        <span class="result-label">{t.totalTax}</span>
+        <span class="result-value danger-text" id="res-total-tax">0 원</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .tool-stock-tax {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .calculator-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  @media (min-width: 768px) {
+    .calculator-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .input-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .input-group-wrapper {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+  }
+
+  h3 {
+    margin: 0;
+    font-size: 1.125rem;
+    color: var(--text-primary);
+  }
+
+  .plan-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .input-group {
+    display: flex;
+    flex-direction: column;
+    margin-top: 1rem;
+  }
+
+  label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+  }
+
+  input {
+    width: 100%;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius);
+    font-size: 1rem;
+    transition: all 0.2s;
+  }
+
+  input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+  }
+
+  /* Table styling */
+  .table-container {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  th {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    text-align: left;
+    padding-bottom: 0.5rem;
+    font-weight: 500;
+  }
+
+  td {
+    padding: 0.5rem 0.25rem;
+    vertical-align: middle;
+  }
+
+  td input {
+    padding: 0.5rem;
+    font-size: 0.875rem;
+  }
+
+  .delete-row-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0.25rem;
+    opacity: 0.7;
+  }
+
+  .delete-row-btn:hover {
+    opacity: 1;
+  }
+
+  .small-btn {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.75rem;
+    border-radius: var(--radius);
+    font-weight: bold;
+    border: 1px solid var(--border);
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 1rem;
+  }
+
+  button {
+    padding: 0.875rem;
+    border-radius: var(--radius);
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.2s;
+  }
+
+  .btn-primary {
+    flex: 1;
+    background: var(--accent);
+    color: #000;
+    border: none;
+  }
+
+  .btn-primary:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+  }
+
+  .btn-secondary:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+
+  /* Result Area styling */
+  .result-section {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .result-box {
+    background: var(--bg-hover);
+    padding: 1.25rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .result-box.highlighted {
+    background: rgba(239, 68, 68, 0.03);
+    border-color: rgba(239, 68, 68, 0.2);
+  }
+
+  .result-box-row {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .result-box.half {
+    flex: 1;
+  }
+
+  .result-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+  }
+
+  .result-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    word-break: break-all;
+  }
+
+  .result-value.accent {
+    color: var(--accent);
+  }
+
+  .danger-text {
+    color: #ef4444;
+  }
+
+  /* Tax Saving Card */
+  .tax-saving-card {
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    padding: 1.25rem;
+    border-radius: var(--radius);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .card-title {
+    font-weight: bold;
+    font-size: 0.875rem;
+    color: #93c5fd;
+  }
+
+  .card-content {
+    font-size: 0.825rem;
+    line-height: 1.5;
+    margin: 0;
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // Inputs
+    const realizedInput = document.getElementById('realized-gain') as HTMLInputElement;
+    const stockTbody = document.getElementById('stock-tbody');
+    const addStockBtn = document.getElementById('add-stock-btn');
+
+    // Outputs
+    const resTotalGain = document.getElementById('res-total-gain');
+    const resTaxable = document.getElementById('res-taxable');
+    const resTransferTax = document.getElementById('res-transfer-tax');
+    const resLocalTax = document.getElementById('res-local-tax');
+    const resTotalTax = document.getElementById('res-total-tax');
+    const taxSavingWrapper = document.getElementById('tax-saving-wrapper');
+    const taxSavingGuideText = document.getElementById('tax-saving-guide-text');
+
+    // Buttons
+    const calcBtn = document.getElementById('calc-btn');
+    const clearBtn = document.getElementById('clear-btn');
+
+    const DEDUCTION_KRW = 2500000; // Korea basic deduction is 2.5 Million KRW
+
+    const formatNumber = (num: number, unit = ' 원') => {
+      const prefix = num < 0 ? '-' : '';
+      return prefix + new Intl.NumberFormat().format(Math.abs(Math.round(num))) + unit;
+    };
+
+    const isKo = document.documentElement.lang === 'ko';
+
+    // Add new stock row
+    const addNewRow = () => {
+      const tr = document.createElement('tr');
+      tr.className = 'stock-row';
+      tr.innerHTML = `
+        <td><input type="text" class="row-ticker" placeholder="${isKo ? '예: TSLA' : 'e.g. TSLA'}" /></td>
+        <td><input type="number" class="row-buy" placeholder="${isKo ? '매수 가격' : 'Buy Price'}" step="any" /></td>
+        <td><input type="number" class="row-current" placeholder="${isKo ? '현재 가격' : 'Current Price'}" step="any" /></td>
+        <td><input type="number" class="row-qty" placeholder="${isKo ? '수량' : 'Qty'}" step="any" /></td>
+        <td><button class="delete-row-btn">🗑️</button></td>
+      `;
+
+      tr.querySelector('.delete-row-btn')?.addEventListener('click', () => {
+        tr.remove();
+      });
+
+      stockTbody?.appendChild(tr);
+    };
+
+    const calculate = () => {
+      const realizedGain = parseFloat(realizedInput.value) || 0;
+      const rows = document.querySelectorAll('.stock-row');
+      
+      let unrealizedGainSum = 0;
+
+      rows.forEach(row => {
+        const buyInput = row.querySelector('.row-buy') as HTMLInputElement;
+        const currentInput = row.querySelector('.row-current') as HTMLInputElement;
+        const qtyInput = row.querySelector('.row-qty') as HTMLInputElement;
+
+        const buyPrice = parseFloat(buyInput?.value) || 0;
+        const currentPrice = parseFloat(currentInput?.value) || 0;
+        const qty = parseFloat(qtyInput?.value) || 0;
+
+        if (buyPrice > 0 && currentPrice > 0 && qty > 0) {
+          unrealizedGainSum += (currentPrice - buyPrice) * qty;
+        }
+      });
+
+      // Simple US Dollar conversion to KRW proxy assumption:
+      // Since tickers like TSLA/AAPL are in USD, we approximate an exchange rate if buy prices are low (under 10000).
+      // Let's check if the user wrote prices in USD (e.g. under 5000) or KRW.
+      // If any buyPrice is under 5000, we apply USD/KRW rate of 1350 to make it consistent with KRW tax system calculation.
+      let totalUnrealizedGainKrw = 0;
+      rows.forEach(row => {
+        const buyInput = row.querySelector('.row-buy') as HTMLInputElement;
+        const currentInput = row.querySelector('.row-current') as HTMLInputElement;
+        const qtyInput = row.querySelector('.row-qty') as HTMLInputElement;
+
+        const buyPrice = parseFloat(buyInput?.value) || 0;
+        const currentPrice = parseFloat(currentInput?.value) || 0;
+        const qty = parseFloat(qtyInput?.value) || 0;
+
+        if (buyPrice > 0 && currentPrice > 0 && qty > 0) {
+          const gainUSD = (currentPrice - buyPrice) * qty;
+          // Exchange rate proxy: if values look like USD, convert. Otherwise assume KRW.
+          const isUSD = buyPrice < 10000; 
+          const exchangeRate = isUSD ? 1350 : 1; 
+          totalUnrealizedGainKrw += gainUSD * exchangeRate;
+        }
+      });
+
+      const totalGain = realizedGain + totalUnrealizedGainKrw;
+      const taxable = Math.max(0, totalGain - DEDUCTION_KRW);
+      
+      const transferTax = taxable * 0.20;
+      const localTax = taxable * 0.02;
+      const totalTax = transferTax + localTax;
+
+      // Outputs display
+      if (resTotalGain) resTotalGain.textContent = formatNumber(totalGain);
+      if (resTaxable) resTaxable.textContent = formatNumber(taxable);
+      if (resTransferTax) resTransferTax.textContent = formatNumber(transferTax);
+      if (resLocalTax) resLocalTax.textContent = formatNumber(localTax);
+      if (resTotalTax) resTotalTax.textContent = formatNumber(totalTax);
+
+      // Tax-saving guide rendering
+      if (taxSavingWrapper && taxSavingGuideText) {
+        if (totalGain <= DEDUCTION_KRW) {
+          const limit = DEDUCTION_KRW - totalGain;
+          taxSavingGuideText.innerHTML = isKo
+            ? `현재 비과세 범위 내에 있습니다. 올해 세금 없이 추가로 실현할 수 있는 해외주식 수익 한도는 **${formatNumber(limit, '')}원**입니다.`
+            : `You are within the tax-free limit. You can realize an additional profit of **${formatNumber(limit, '')}** without paying tax this year.`;
+        } else {
+          const lossNeeded = totalGain - DEDUCTION_KRW;
+          taxSavingGuideText.innerHTML = isKo
+            ? `비과세 한도를 초과하여 세금이 발생합니다. 세금을 0원으로 만들기 위해 연말까지 실현해야 하는 타 종목의 추가 손실액은 **${formatNumber(lossNeeded, '')}원**입니다.`
+            : `You have exceeded the tax-free limit. To reduce your tax to 0, you need to realize an additional loss of **${formatNumber(lossNeeded, '')}** on other assets by year-end.`;
+        }
+        taxSavingWrapper.style.display = 'flex';
+      }
+    };
+
+    const clear = () => {
+      realizedInput.value = '1500000';
+      if (stockTbody) {
+        stockTbody.innerHTML = `
+          <tr class="stock-row">
+            <td><input type="text" class="row-ticker" value="AAPL" placeholder="${isKo ? '예: TSLA' : 'e.g. TSLA'}" /></td>
+            <td><input type="number" class="row-buy" value="150" placeholder="${isKo ? '매수 가격' : 'Buy Price'}" step="any" /></td>
+            <td><input type="number" class="row-current" value="180" placeholder="${isKo ? '현재 가격' : 'Current Price'}" step="any" /></td>
+            <td><input type="number" class="row-qty" value="100" placeholder="${isKo ? '수량' : 'Qty'}" step="any" /></td>
+            <td><button class="delete-row-btn">🗑️</button></td>
+          </tr>
+        `;
+        stockTbody.querySelector('.delete-row-btn')?.addEventListener('click', (e) => {
+          (e.target as HTMLElement).closest('tr')?.remove();
+        });
+      }
+
+      if (resTotalGain) resTotalGain.textContent = '0 원';
+      if (resTaxable) resTaxable.textContent = '0 원';
+      if (resTransferTax) resTransferTax.textContent = '0 원';
+      if (resLocalTax) resLocalTax.textContent = '0 원';
+      if (resTotalTax) resTotalTax.textContent = '0 원';
+      if (taxSavingWrapper) taxSavingWrapper.style.display = 'none';
+
+      calculate();
+    };
+
+    // Attach row delete for initial row
+    document.querySelectorAll('.delete-row-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        (e.target as HTMLElement).closest('tr')?.remove();
+      });
+    });
+
+    if (addStockBtn) addStockBtn.addEventListener('click', addNewRow);
+    if (calcBtn) calcBtn.addEventListener('click', calculate);
+    if (clearBtn) clearBtn.addEventListener('click', clear);
+
+    // Initial calculation
+    calculate();
+  });
+</script>

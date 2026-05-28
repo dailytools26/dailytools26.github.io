@@ -1,0 +1,822 @@
+---
+import { getLangFromUrl } from "../../i18n/utils";
+
+const lang = getLangFromUrl(Astro.url);
+
+const i18n = {
+  ko: {
+    capitalSetting: "신규 투입 자금",
+    newCapital: "추가 투자 자금 (원)",
+    assetSetting: "자산 비중 설정",
+    assetName: "자산명",
+    currentVal: "현재 평가액",
+    targetWeight: "목표 비중 (%)",
+    addAsset: "+ 자산 추가",
+    results: "리밸런싱 매매 제안",
+    totalAssets: "현재 자산 총액",
+    newTotalAssets: "리밸런싱 후 총액",
+    currentWeight: "현재 비중",
+    targetPriceVal: "목표 평가액",
+    adjustment: "조정 금액 (주문 제안)",
+    buy: "매수",
+    sell: "매도",
+    keep: "유지",
+    weightWarning:
+      "⚠️ 경고: 목표 비중의 합이 100%가 되어야 합니다 (현재: {sum}%).",
+    calculate: "리밸런싱 계산하기",
+    clear: "초기화",
+    placeholderCapital: "추가할 투자금 입력 (없으면 0)",
+    placeholderAsset: "예: 미국 주식, 채권",
+    placeholderVal: "현재 가치 입력",
+    placeholderWeight: "비중",
+  },
+  en: {
+    capitalSetting: "New Cash",
+    newCapital: "Additional Capital",
+    assetSetting: "Asset Allocations",
+    assetName: "Asset Name",
+    currentVal: "Current Value",
+    targetWeight: "Target Weight (%)",
+    addAsset: "+ Add Asset",
+    results: "Rebalancing Actions",
+    totalAssets: "Total Current Value",
+    newTotalAssets: "Total Value after Rebalancing",
+    currentWeight: "Current Weight",
+    targetPriceVal: "Target Value",
+    adjustment: "Adjustment Needed",
+    buy: "BUY",
+    sell: "SELL",
+    keep: "HOLD",
+    weightWarning:
+      "⚠️ Warning: Sum of target weights must equal 100% (Current: {sum}%).",
+    calculate: "Calculate Rebalancing",
+    clear: "Clear",
+    placeholderCapital: "New cash to invest (0 if none)",
+    placeholderAsset: "e.g. US Equities, Bonds",
+    placeholderVal: "Current value",
+    placeholderWeight: "Weight",
+  },
+};
+
+const t = i18n[lang] || i18n["ko"];
+---
+
+<div class="tool-stock-rebalancing">
+  <div class="calculator-grid">
+    <!-- 입력 영역 -->
+    <div class="input-section">
+      <div class="input-group-wrapper">
+        <h3>{t.capitalSetting}</h3>
+        <div class="input-group">
+          <label for="new-capital">{t.newCapital}</label>
+          <input
+            type="number"
+            id="new-capital"
+            placeholder={t.placeholderCapital}
+            min="0"
+            step="any"
+            value="2000000"
+          />
+        </div>
+      </div>
+
+      <div class="input-group-wrapper">
+        <div class="plan-header">
+          <h3>{t.assetSetting}</h3>
+          <button id="add-asset-btn" class="btn-secondary small-btn"
+            >{t.addAsset}</button
+          >
+        </div>
+
+        <div class="table-container">
+          <table id="asset-table">
+            <thead>
+              <tr>
+                <th>{t.assetName}</th>
+                <th>{t.currentVal}</th>
+                <th>{t.targetWeight}</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="asset-tbody">
+              <!-- Default Allocations -->
+              <tr class="asset-row">
+                <td
+                  ><input
+                    type="text"
+                    class="row-name"
+                    value="미국 주식"
+                    placeholder={t.placeholderAsset}
+                  /></td
+                >
+                <td
+                  ><input
+                    type="number"
+                    class="row-val"
+                    value="5000000"
+                    placeholder={t.placeholderVal}
+                    step="any"
+                  /></td
+                >
+                <td
+                  ><input
+                    type="number"
+                    class="row-weight"
+                    value="50"
+                    placeholder={t.placeholderWeight}
+                    step="any"
+                  /></td
+                >
+                <td><button class="delete-row-btn">🗑️</button></td>
+              </tr>
+              <tr class="asset-row">
+                <td
+                  ><input
+                    type="text"
+                    class="row-name"
+                    value="국내 주식"
+                    placeholder={t.placeholderAsset}
+                  /></td
+                >
+                <td
+                  ><input
+                    type="number"
+                    class="row-val"
+                    value="2000000"
+                    placeholder={t.placeholderVal}
+                    step="any"
+                  /></td
+                >
+                <td
+                  ><input
+                    type="number"
+                    class="row-weight"
+                    value="30"
+                    placeholder={t.placeholderWeight}
+                    step="any"
+                  /></td
+                >
+                <td><button class="delete-row-btn">🗑️</button></td>
+              </tr>
+              <tr class="asset-row">
+                <td
+                  ><input
+                    type="text"
+                    class="row-name"
+                    value="채권"
+                    placeholder={t.placeholderAsset}
+                  /></td
+                >
+                <td
+                  ><input
+                    type="number"
+                    class="row-val"
+                    value="1000000"
+                    placeholder={t.placeholderVal}
+                    step="any"
+                  /></td
+                >
+                <td
+                  ><input
+                    type="number"
+                    class="row-weight"
+                    value="20"
+                    placeholder={t.placeholderWeight}
+                    step="any"
+                  /></td
+                >
+                <td><button class="delete-row-btn">🗑️</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div id="weight-alert" class="weight-status-msg"></div>
+      </div>
+
+      <div class="action-buttons">
+        <button id="calc-btn" class="btn-primary">{t.calculate}</button>
+        <button id="clear-btn" class="btn-secondary">{t.clear}</button>
+      </div>
+    </div>
+
+    <!-- 결과 영역 -->
+    <div class="result-section">
+      <h3>{t.results}</h3>
+
+      <div class="result-box-row">
+        <div class="result-box half">
+          <span class="result-label">{t.totalAssets}</span>
+          <span class="result-value" id="res-total-assets">0 원</span>
+        </div>
+        <div class="result-box half">
+          <span class="result-label">{t.newTotalAssets}</span>
+          <span class="result-value accent" id="res-new-total">0 원</span>
+        </div>
+      </div>
+
+      <!-- 리밸런싱 제안 테이블 -->
+      <div class="detail-schedule-wrapper">
+        <label>자산별 리밸런싱 주문 목록</label>
+        <div class="detail-table-container">
+          <table class="detail-table">
+            <thead>
+              <tr>
+                <th>{t.assetName}</th>
+                <th>{t.currentWeight}</th>
+                <th>{t.targetPriceVal}</th>
+                <th>{t.adjustment}</th>
+              </tr>
+            </thead>
+            <tbody id="rebalancing-tbody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 비교형 가로 바 차트 시각화 -->
+      <div class="visual-chart-wrapper">
+        <label>비중 비교 (현재 vs 목표)</label>
+        <div class="chart-container" id="rebalance-chart-bars">
+          <!-- Dynamically filled with side-by-side bars -->
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .tool-stock-rebalancing {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .calculator-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  @media (min-width: 768px) {
+    .calculator-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .input-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .input-group-wrapper {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+  }
+
+  h3 {
+    margin: 0;
+    font-size: 1.125rem;
+    color: var(--text-primary);
+  }
+
+  .plan-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .input-group {
+    display: flex;
+    flex-direction: column;
+    margin-top: 1rem;
+  }
+
+  label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+  }
+
+  input {
+    width: 100%;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius);
+    font-size: 1rem;
+    transition: all 0.2s;
+  }
+
+  input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+  }
+
+  /* Table styling */
+  .table-container {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  th {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    text-align: left;
+    padding-bottom: 0.5rem;
+    font-weight: 500;
+  }
+
+  td {
+    padding: 0.5rem 0.25rem;
+    vertical-align: middle;
+  }
+
+  td input {
+    padding: 0.5rem;
+    font-size: 0.875rem;
+  }
+
+  .delete-row-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0.25rem;
+    opacity: 0.7;
+  }
+
+  .delete-row-btn:hover {
+    opacity: 1;
+  }
+
+  .small-btn {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.75rem;
+    border-radius: var(--radius);
+    font-weight: bold;
+    border: 1px solid var(--border);
+  }
+
+  .weight-status-msg {
+    margin-top: 1rem;
+    font-size: 0.75rem;
+    color: #fca5a5;
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 1rem;
+  }
+
+  button {
+    padding: 0.875rem;
+    border-radius: var(--radius);
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.2s;
+  }
+
+  .btn-primary {
+    flex: 1;
+    background: var(--accent);
+    color: #000;
+    border: none;
+  }
+
+  .btn-primary:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+  }
+
+  .btn-secondary:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+
+  /* Result Area styling */
+  .result-section {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .result-box {
+    background: var(--bg-hover);
+    padding: 1.25rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .result-box-row {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .result-box.half {
+    flex: 1;
+  }
+
+  .result-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+  }
+
+  .result-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    word-break: break-all;
+  }
+
+  .result-value.accent {
+    color: var(--accent);
+  }
+
+  /* Schedule Table styling */
+  .detail-schedule-wrapper {
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .detail-schedule-wrapper label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+  }
+
+  .detail-table-container {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .detail-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .detail-table th {
+    background: var(--bg-hover);
+    padding: 0.6rem 0.8rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .detail-table td {
+    padding: 0.6rem 0.8rem;
+    font-size: 0.825rem;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .detail-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  /* Visual chart comparing weight */
+  .visual-chart-wrapper {
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .visual-chart-wrapper label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+  }
+
+  .chart-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+
+  .chart-bar-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .chart-asset-label {
+    font-size: 0.75rem;
+    font-weight: bold;
+    color: var(--text-primary);
+  }
+
+  .chart-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .chart-bar-track {
+    flex: 1;
+    height: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 9999px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .chart-bar-fill {
+    height: 100%;
+    border-radius: 9999px;
+    width: 0;
+    transition: width 0.5s ease-out;
+  }
+
+  .chart-bar-fill.current {
+    background: #475569;
+  }
+
+  .chart-bar-fill.target {
+    background: linear-gradient(to right, #36e4da, #00dc82);
+  }
+
+  .chart-bar-val {
+    font-size: 0.7rem;
+    width: 70px;
+    text-align: right;
+    color: var(--text-secondary);
+  }
+</style>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    // Inputs
+    const newCapitalInput = document.getElementById(
+      "new-capital",
+    ) as HTMLInputElement;
+    const assetTbody = document.getElementById("asset-tbody");
+    const addAssetBtn = document.getElementById("add-asset-btn");
+    const weightAlert = document.getElementById("weight-alert");
+
+    // Outputs
+    const resTotalAssets = document.getElementById("res-total-assets");
+    const resNewTotal = document.getElementById("res-new-total");
+    const rebalancingTbody = document.getElementById("rebalancing-tbody");
+    const rebalanceChartBars = document.getElementById("rebalance-chart-bars");
+
+    // Buttons
+    const calcBtn = document.getElementById("calc-btn");
+    const clearBtn = document.getElementById("clear-btn");
+
+    const formatNumber = (num: number, unit = " 원") => {
+      const prefix = num < 0 ? "-" : "";
+      return (
+        prefix +
+        new Intl.NumberFormat().format(Math.abs(Math.round(num))) +
+        unit
+      );
+    };
+
+    const isKo = document.documentElement.lang === "ko";
+
+    // Add new asset row
+    const addNewRow = () => {
+      const tr = document.createElement("tr");
+      tr.className = "asset-row";
+      tr.innerHTML = `
+        <td><input type="text" class="row-name" placeholder="${isKo ? "자산명" : "Asset"}" /></td>
+        <td><input type="number" class="row-val" placeholder="0" step="any" /></td>
+        <td><input type="number" class="row-weight" placeholder="0" step="any" /></td>
+        <td><button class="delete-row-btn">🗑️</button></td>
+      `;
+
+      tr.querySelector(".delete-row-btn")?.addEventListener("click", () => {
+        tr.remove();
+        checkWeights();
+      });
+
+      assetTbody?.appendChild(tr);
+      checkWeights();
+    };
+
+    // Check total target weights
+    const checkWeights = () => {
+      const rows = document.querySelectorAll(".asset-row");
+      let sum = 0;
+      rows.forEach((row) => {
+        const weightInput = row.querySelector(
+          ".row-weight",
+        ) as HTMLInputElement;
+        sum += parseFloat(weightInput?.value) || 0;
+      });
+
+      if (!weightAlert) return sum;
+
+      if (Math.abs(sum - 100) > 0.01) {
+        weightAlert.textContent = isKo
+          ? `⚠️ 경고: 목표 비중의 합이 100%가 되어야 합니다 (현재: ${sum}%).`
+          : `⚠️ Warning: Sum of target weights must equal 100% (Current: ${sum}%).`;
+        weightAlert.style.display = "block";
+      } else {
+        weightAlert.style.display = "none";
+        weightAlert.textContent = "";
+      }
+
+      return sum;
+    };
+
+    const calculate = () => {
+      const newCapital = parseFloat(newCapitalInput.value) || 0;
+      const rows = document.querySelectorAll(".asset-row");
+
+      let totalCurrentValue = 0;
+      const assets: Array<{
+        name: string;
+        currentVal: number;
+        targetWeight: number;
+      }> = [];
+
+      rows.forEach((row) => {
+        const nameInput = row.querySelector(".row-name") as HTMLInputElement;
+        const valInput = row.querySelector(".row-val") as HTMLInputElement;
+        const weightInput = row.querySelector(
+          ".row-weight",
+        ) as HTMLInputElement;
+
+        const name =
+          nameInput?.value || (isKo ? "미지정 자산" : "Unnamed Asset");
+        const currentVal = parseFloat(valInput?.value) || 0;
+        const targetWeight = parseFloat(weightInput?.value) || 0;
+
+        totalCurrentValue += currentVal;
+        assets.push({ name, currentVal, targetWeight });
+      });
+
+      const newTotalValue = totalCurrentValue + newCapital;
+      const weightSum = checkWeights();
+
+      // Clear previous outputs
+      if (rebalancingTbody) rebalancingTbody.innerHTML = "";
+      if (rebalanceChartBars) rebalanceChartBars.innerHTML = "";
+
+      if (assets.length === 0) return;
+
+      // Outputs display
+      if (resTotalAssets)
+        resTotalAssets.textContent = formatNumber(totalCurrentValue);
+      if (resNewTotal) resNewTotal.textContent = formatNumber(newTotalValue);
+
+      assets.forEach((asset) => {
+        const currentWeight =
+          totalCurrentValue > 0
+            ? (asset.currentVal / totalCurrentValue) * 100
+            : 0;
+        const targetValue = newTotalValue * (asset.targetWeight / 100);
+        const adjustment = targetValue - asset.currentVal;
+
+        // Ordertype & Color
+        let orderType = isKo ? t.ko.keep : t.en.keep;
+        let adjustmentClass = "";
+        if (adjustment > 50) {
+          orderType = isKo ? t.ko.buy : t.en.buy;
+          adjustmentClass = "success-text";
+        } else if (adjustment < -50) {
+          orderType = isKo ? t.ko.sell : t.en.sell;
+          adjustmentClass = "danger-text";
+        }
+
+        // Render schedule table row
+        if (rebalancingTbody) {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td style="font-weight: bold;">${asset.name}</td>
+            <td>${asset.currentVal > 0 ? currentWeight.toFixed(1) + "%" : "0%"}</td>
+            <td>${formatNumber(targetValue)}</td>
+            <td class="${adjustmentClass}" style="font-weight: bold;">
+              ${adjustment === 0 ? "Hold" : `${orderType} ${formatNumber(Math.abs(adjustment))}`}
+            </td>
+          `;
+          rebalancingTbody.appendChild(tr);
+        }
+
+        // Render visual comparison bar
+        if (rebalanceChartBars) {
+          const group = document.createElement("div");
+          group.className = "chart-bar-group";
+          group.innerHTML = `
+            <span class="chart-asset-label">${asset.name}</span>
+            <div class="chart-bar-row">
+              <div class="chart-bar-track">
+                <div class="chart-bar-fill current" style="width: ${currentWeight}%"></div>
+              </div>
+              <span class="chart-bar-val">${currentWeight.toFixed(1)}%</span>
+            </div>
+            <div class="chart-bar-row">
+              <div class="chart-bar-track">
+                <div class="chart-bar-fill target" style="width: ${asset.targetWeight}%"></div>
+              </div>
+              <span class="chart-bar-val" style="color: var(--accent); font-weight: 600;">${asset.targetWeight}%</span>
+            </div>
+          `;
+          rebalanceChartBars.appendChild(group);
+        }
+      });
+    };
+
+    const clear = () => {
+      newCapitalInput.value = "2000000";
+      if (assetTbody) {
+        assetTbody.innerHTML = `
+          <tr class="asset-row">
+            <td><input type="text" class="row-name" value="미국 주식" placeholder="${isKo ? "자산명" : "Asset"}" /></td>
+            <td><input type="number" class="row-val" value="5000000" placeholder="0" step="any" /></td>
+            <td><input type="number" class="row-weight" value="50" placeholder="0" step="any" /></td>
+            <td><button class="delete-row-btn">🗑️</button></td>
+          </tr>
+          <tr class="asset-row">
+            <td><input type="text" class="row-name" value="국내 주식" placeholder="${isKo ? "자산명" : "Asset"}" /></td>
+            <td><input type="number" class="row-val" value="2000000" placeholder="0" step="any" /></td>
+            <td><input type="number" class="row-weight" value="30" placeholder="0" step="any" /></td>
+            <td><button class="delete-row-btn">🗑️</button></td>
+          </tr>
+          <tr class="asset-row">
+            <td><input type="text" class="row-name" value="채권" placeholder="${isKo ? "자산명" : "Asset"}" /></td>
+            <td><input type="number" class="row-val" value="1000000" placeholder="0" step="any" /></td>
+            <td><input type="number" class="row-weight" value="20" placeholder="0" step="any" /></td>
+            <td><button class="delete-row-btn">🗑️</button></td>
+          </tr>
+        `;
+
+        // Re-attach delete listeners
+        document.querySelectorAll(".delete-row-btn").forEach((btn) => {
+          btn.addEventListener("click", (e) => {
+            (e.target as HTMLElement).closest("tr")?.remove();
+            checkWeights();
+          });
+        });
+      }
+
+      if (resTotalAssets) resTotalAssets.textContent = "0 원";
+      if (resNewTotal) resNewTotal.textContent = "0 원";
+      if (rebalancingTbody) rebalancingTbody.innerHTML = "";
+      if (rebalanceChartBars) rebalanceChartBars.innerHTML = "";
+      if (weightAlert) {
+        weightAlert.style.display = "none";
+        weightAlert.textContent = "";
+      }
+
+      calculate();
+    };
+
+    // Attach row delete for initial rows
+    document.querySelectorAll(".delete-row-btn").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        (e.target as HTMLElement).closest("tr")?.remove();
+        checkWeights();
+      });
+    });
+
+    // Real-time weight check listener
+    assetTbody?.addEventListener("input", (e) => {
+      if ((e.target as HTMLElement).classList.contains("row-weight")) {
+        checkWeights();
+      }
+    });
+
+    if (addAssetBtn) addAssetBtn.addEventListener("click", addNewRow);
+    if (calcBtn) calcBtn.addEventListener("click", calculate);
+    if (clearBtn) clearBtn.addEventListener("click", clear);
+
+    // Initial check and run
+    checkWeights();
+    calculate();
+  });
+</script>

@@ -16,6 +16,7 @@ const lang = getLangFromUrl(Astro.url);
 
 const title = tool.name[lang] || tool.name['ko'];
 const description = tool.description[lang] || tool.description['ko'];
+const keywords = tool.tags;
 
 let ToolComponent;
 try {
@@ -26,7 +27,7 @@ try {
 }
 ---
 
-<Layout title={title} description={description}>
+<Layout title={title} description={description} keywords={keywords}>
   <Breadcrumb tool={tool} />
   
   <div class="container tool-container">

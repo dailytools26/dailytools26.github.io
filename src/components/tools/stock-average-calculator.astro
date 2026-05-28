@@ -1,0 +1,328 @@
+---
+import { getLangFromUrl } from '../../i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+
+const i18n = {
+  ko: {
+    currentHoldings: '보유 주식',
+    currentPrice: '기존 평단가',
+    currentQty: '보유 수량',
+    additionalPurchases: '추가 매수',
+    addPrice: '추가 매수 단가',
+    addQty: '추가 매수 수량',
+    results: '계산 결과',
+    finalAveragePrice: '최종 평단가',
+    finalQty: '최종 보유 수량',
+    totalInvestment: '총 투자 금액',
+    calculate: '계산하기',
+    clear: '초기화',
+    placeholderPrice: '단가 입력 (예: 50000)',
+    placeholderQty: '수량 입력 (예: 100)'
+  },
+  en: {
+    currentHoldings: 'Current Holdings',
+    currentPrice: 'Average Price',
+    currentQty: 'Quantity',
+    additionalPurchases: 'Additional Purchase',
+    addPrice: 'Purchase Price',
+    addQty: 'Quantity',
+    results: 'Results',
+    finalAveragePrice: 'Final Average Price',
+    finalQty: 'Final Total Quantity',
+    totalInvestment: 'Total Investment',
+    calculate: 'Calculate',
+    clear: 'Clear',
+    placeholderPrice: 'Price (e.g. 50000)',
+    placeholderQty: 'Quantity (e.g. 100)'
+  }
+};
+
+const t = i18n[lang] || i18n['ko'];
+---
+
+<div class="tool-stock-average">
+  <div class="calculator-grid">
+    <!-- 입력 영역 -->
+    <div class="input-section">
+      <div class="input-group-wrapper">
+        <h3>{t.currentHoldings}</h3>
+        <div class="input-group">
+          <label for="current-price">{t.currentPrice}</label>
+          <input type="number" id="current-price" placeholder={t.placeholderPrice} min="0" step="any" />
+        </div>
+        <div class="input-group">
+          <label for="current-qty">{t.currentQty}</label>
+          <input type="number" id="current-qty" placeholder={t.placeholderQty} min="0" step="any" />
+        </div>
+      </div>
+
+      <div class="input-group-wrapper">
+        <h3>{t.additionalPurchases}</h3>
+        <div class="input-group">
+          <label for="add-price">{t.addPrice}</label>
+          <input type="number" id="add-price" placeholder={t.placeholderPrice} min="0" step="any" />
+        </div>
+        <div class="input-group">
+          <label for="add-qty">{t.addQty}</label>
+          <input type="number" id="add-qty" placeholder={t.placeholderQty} min="0" step="any" />
+        </div>
+      </div>
+
+      <div class="action-buttons">
+        <button id="calc-btn" class="btn-primary">{t.calculate}</button>
+        <button id="clear-btn" class="btn-secondary">{t.clear}</button>
+      </div>
+    </div>
+
+    <!-- 결과 영역 -->
+    <div class="result-section">
+      <h3>{t.results}</h3>
+      <div class="result-box">
+        <span class="result-label">{t.finalAveragePrice}</span>
+        <span class="result-value accent" id="res-avg-price">0</span>
+      </div>
+      <div class="result-box">
+        <span class="result-label">{t.finalQty}</span>
+        <span class="result-value" id="res-total-qty">0</span>
+      </div>
+      <div class="result-box">
+        <span class="result-label">{t.totalInvestment}</span>
+        <span class="result-value" id="res-total-investment">0</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .tool-stock-average {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .calculator-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  @media (min-width: 768px) {
+    .calculator-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .input-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .input-group-wrapper {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+  }
+
+  h3 {
+    margin: 0 0 1.25rem 0;
+    font-size: 1.125rem;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.75rem;
+  }
+
+  .input-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1rem;
+  }
+
+  .input-group:last-child {
+    margin-bottom: 0;
+  }
+
+  label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+  }
+
+  input {
+    width: 100%;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius);
+    font-size: 1rem;
+    transition: all 0.2s;
+  }
+
+  input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+  }
+  
+  /* Chrome, Safari, Edge, Opera */
+  input::-webkit-outer-spin-button,
+  input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  /* Firefox */
+  input[type=number] {
+    -moz-appearance: textfield;
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 1rem;
+  }
+
+  button {
+    flex: 1;
+    padding: 0.875rem;
+    border-radius: var(--radius);
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.2s;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+    border: none;
+  }
+
+  .btn-primary:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+  }
+
+  .btn-secondary:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+
+  .result-section {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .result-box {
+    background: var(--bg-hover);
+    padding: 1.25rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1rem;
+  }
+  
+  .result-box:last-child {
+    margin-bottom: 0;
+  }
+
+  .result-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+  }
+
+  .result-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    word-break: break-all;
+  }
+
+  .result-value.accent {
+    color: var(--accent);
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // Inputs
+    const currentPriceInput = document.getElementById('current-price') as HTMLInputElement;
+    const currentQtyInput = document.getElementById('current-qty') as HTMLInputElement;
+    const addPriceInput = document.getElementById('add-price') as HTMLInputElement;
+    const addQtyInput = document.getElementById('add-qty') as HTMLInputElement;
+
+    // Outputs
+    const resAvgPrice = document.getElementById('res-avg-price');
+    const resTotalQty = document.getElementById('res-total-qty');
+    const resTotalInvestment = document.getElementById('res-total-investment');
+
+    // Buttons
+    const calcBtn = document.getElementById('calc-btn');
+    const clearBtn = document.getElementById('clear-btn');
+
+    // Format number with commas
+    const formatNumber = (num: number) => {
+      // 숫자가 너무 크거나 소수점이 긴 경우를 처리
+      return new Intl.NumberFormat(undefined, { 
+        maximumFractionDigits: 2 
+      }).format(num);
+    };
+
+    const calculate = () => {
+      const currentPrice = parseFloat(currentPriceInput.value) || 0;
+      const currentQty = parseFloat(currentQtyInput.value) || 0;
+      const addPrice = parseFloat(addPriceInput.value) || 0;
+      const addQty = parseFloat(addQtyInput.value) || 0;
+
+      const currentTotal = currentPrice * currentQty;
+      const addTotal = addPrice * addQty;
+      
+      const totalInvestment = currentTotal + addTotal;
+      const totalQty = currentQty + addQty;
+      
+      const avgPrice = totalQty > 0 ? totalInvestment / totalQty : 0;
+
+      if (resAvgPrice) resAvgPrice.textContent = formatNumber(avgPrice);
+      if (resTotalQty) resTotalQty.textContent = formatNumber(totalQty);
+      if (resTotalInvestment) resTotalInvestment.textContent = formatNumber(totalInvestment);
+    };
+
+    const clear = () => {
+      currentPriceInput.value = '';
+      currentQtyInput.value = '';
+      addPriceInput.value = '';
+      addQtyInput.value = '';
+      
+      if (resAvgPrice) resAvgPrice.textContent = '0';
+      if (resTotalQty) resTotalQty.textContent = '0';
+      if (resTotalInvestment) resTotalInvestment.textContent = '0';
+    };
+
+    if (calcBtn) calcBtn.addEventListener('click', calculate);
+    if (clearBtn) clearBtn.addEventListener('click', clear);
+
+    // Enter key support
+    const inputs = [currentPriceInput, currentQtyInput, addPriceInput, addQtyInput];
+    inputs.forEach(input => {
+      if (input) {
+        input.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') {
+            calculate();
+          }
+        });
+      }
+    });
+  });
+</script>
