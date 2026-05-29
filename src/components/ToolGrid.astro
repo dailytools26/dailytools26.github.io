@@ -1,29 +1,42 @@
 ---
 import ToolCard from './ToolCard.astro';
-import { tools } from '../data/tools';
+import { tools, getAllCategories } from '../data/tools';
 import { getLangFromUrl } from '../i18n/utils';
 
 const lang = getLangFromUrl(Astro.url);
+
+// 카테고리별로 도구 그룹화 (H2 헤더 계층을 위해)
+const categories = getAllCategories();
+const toolsByCategory = categories.map(({ slug, label }) => ({
+  slug,
+  label: typeof label === 'object' ? (label[lang] || label['ko']) : label,
+  tools: tools.filter(t => t.category === slug),
+})).filter(cat => cat.tools.length > 0);
 ---
 
 <section class="tools-grid-section">
   <div class="container">
-    <div class="tools-grid">
-      {tools.map(tool => {
-        const title = tool.name[lang] || tool.name['ko'];
-        const tags = tool.tags.join(' ');
-        return (
-          <div 
-            class="tool-card-wrapper" 
-            data-category={tool.category}
-            data-title={title}
-            data-tags={tags}
-          >
-            <ToolCard tool={tool} />
-          </div>
-        );
-      })}
-    </div>
+    {toolsByCategory.map(cat => (
+      <div class="category-section" data-category-section={cat.slug}>
+        <h2 class="category-heading" data-category-header={cat.slug}>{cat.label}</h2>
+        <div class="tools-grid">
+          {cat.tools.map(tool => {
+            const title = tool.name[lang] || tool.name['ko'];
+            const tags = tool.tags.join(' ');
+            return (
+              <div
+                class="tool-card-wrapper"
+                data-category={tool.category}
+                data-title={title}
+                data-tags={tags}
+              >
+                <ToolCard tool={tool} />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    ))}
     
     <div id="no-results" class="no-results">
       <div class="no-results-icon">🔍</div>
@@ -35,6 +48,20 @@ const lang = getLangFromUrl(Astro.url);
 <style>
   .tools-grid-section {
     padding: 2rem 0 5rem;
+  }
+
+  .category-section {
+    margin-bottom: 3rem;
+  }
+
+  .category-heading {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 1.25rem 0;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--accent);
+    display: inline-block;
   }
 
   .tools-grid {
@@ -70,24 +97,33 @@ const lang = getLangFromUrl(Astro.url);
 </style>
 
 <script>
-  // Show "No results" if all cards are hidden
+  // Show "No results" if all cards are hidden + hide empty category sections
   document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('tool-search');
     const filterBtns = document.querySelectorAll('.filter-btn');
     
     const checkNoResults = () => {
       const toolCards = document.querySelectorAll('.tool-card-wrapper');
+      const categorySections = document.querySelectorAll('.category-section');
       const noResults = document.getElementById('no-results');
       
-      let visibleCount = 0;
-      toolCards.forEach(card => {
-        if ((card as HTMLElement).style.display !== 'none') {
-          visibleCount++;
-        }
+      let totalVisible = 0;
+
+      // 카테고리 섹션별로 보이는 카드 수 확인 후 헤더 숨김 처리
+      categorySections.forEach(section => {
+        const cards = section.querySelectorAll('.tool-card-wrapper');
+        let visibleInSection = 0;
+        cards.forEach(card => {
+          if ((card as HTMLElement).style.display !== 'none') {
+            visibleInSection++;
+          }
+        });
+        (section as HTMLElement).style.display = visibleInSection === 0 ? 'none' : '';
+        totalVisible += visibleInSection;
       });
       
       if (noResults) {
-        noResults.style.display = visibleCount === 0 ? 'block' : 'none';
+        noResults.style.display = totalVisible === 0 ? 'block' : 'none';
       }
     };
 

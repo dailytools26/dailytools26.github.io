@@ -38,9 +38,56 @@ sortedDocs.forEach(d => {
 const title = doc.data.title;
 const description = doc.data.description;
 const keywords = doc.data.keywords || [];
+
+const siteUrl = 'https://dailytools26.github.io';
+const pageUrl = `${siteUrl}/docs/${doc.id}`;
+
+// BreadcrumbList Schema
+const breadcrumbSchema = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "홈",
+      "item": siteUrl,
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "문서",
+      "item": `${siteUrl}/docs`,
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "name": title,
+      "item": pageUrl,
+    },
+  ],
+};
+
+// Article Schema
+const articleSchema = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": title,
+  "description": description,
+  "url": pageUrl,
+  "publisher": {
+    "@type": "Organization",
+    "name": "DailyTools26",
+    "url": siteUrl,
+  },
+  "inLanguage": "ko-KR",
+};
 ---
 
 <Layout title={title} description={description} keywords={keywords}>
+  <!-- BreadcrumbList + Article Schema -->
+  <script type="application/ld+json" set:html={JSON.stringify(breadcrumbSchema)} />
+  <script type="application/ld+json" set:html={JSON.stringify(articleSchema)} />
   <div class="container docs-container">
     <aside class="docs-sidebar">
       <nav class="sidebar-nav">

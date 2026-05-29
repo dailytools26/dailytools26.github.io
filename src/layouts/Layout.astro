@@ -7,28 +7,75 @@ interface Props {
 	title: string;
 	description?: string;
 	keywords?: string[];
+	ogImage?: string;
 }
 
 const {
 	title,
-	description = "웹 개발자를 위한 일상적인 개발 작업 도구 모음",
+	description = "웹 개발자와 직장인을 위한 무료 온라인 계산 도구 모음. 종합소득세, 근로소득세, 배당수익률, 해외주식 세금, 포지션 사이징, 은퇴 계산 등 일상적인 재무 계산을 빠르게 처리하세요.",
 	keywords = [
 		"개발자 도구",
+		"세금 계산기",
+		"소득세 계산기",
+		"배당수익률 계산기",
 		"웹 툴",
-		"계산기",
 		"daily tools",
 		"developer tools",
+		"free calculator",
 	],
+	ogImage = "https://dailytools26.github.io/og-image.png",
 } = Astro.props;
 const lang = getLangFromUrl(Astro.url);
 const siteUrl = Astro.site
-	? Astro.site.toString()
+	? Astro.site.toString().replace(/\/$/, "")
 	: "https://dailytools26.github.io";
 const currentUrl = new URL(Astro.url.pathname, siteUrl).href;
+
+// Hreflang alternate URLs
+const pathname = Astro.url.pathname;
+const koUrl = `${siteUrl}${pathname.startsWith("/en") ? pathname.replace(/^\/en/, "") || "/" : pathname}`;
+const enUrl = `${siteUrl}/en${pathname.startsWith("/en") ? pathname : pathname === "/" ? "" : pathname}`;
+
+// Full title for <title> tag
+const fullTitle = `${title} | DailyTools26`;
+
+// Schema.org JSON-LD
+const websiteSchema = {
+	"@context": "https://schema.org",
+	"@graph": [
+		{
+			"@type": "WebSite",
+			"@id": `${siteUrl}/#website`,
+			"url": siteUrl,
+			"name": "DailyTools26",
+			"description": "웹 개발자와 직장인을 위한 무료 온라인 계산 도구 모음",
+			"inLanguage": lang === "ko" ? "ko-KR" : "en-US",
+			"potentialAction": {
+				"@type": "SearchAction",
+				"target": {
+					"@type": "EntryPoint",
+					"urlTemplate": `${siteUrl}/?q={search_term_string}`,
+				},
+				"query-input": "required name=search_term_string",
+			},
+		},
+		{
+			"@type": "Organization",
+			"@id": `${siteUrl}/#organization`,
+			"name": "DailyTools26",
+			"url": siteUrl,
+			"logo": {
+				"@type": "ImageObject",
+				"url": `${siteUrl}/favicon.svg`,
+			},
+			"sameAs": [],
+		},
+	],
+};
 ---
 
 <!doctype html>
-<html lang={lang}>
+<html lang={lang === "ko" ? "ko" : "en"}>
 	<head>
 		<script is:inline>
 			const theme = (() => {
@@ -57,25 +104,39 @@ const currentUrl = new URL(Astro.url.pathname, siteUrl).href;
 		<meta name="google-adsense-account" content="ca-pub-7164614404138031" />
 
 		<!-- 기본 SEO 설정 -->
-		<title>{title} | DailyTools26</title>
+		<title>{fullTitle}</title>
 		<meta name="description" content={description} />
 		<meta name="keywords" content={keywords.join(", ")} />
+
+		<!-- Canonical Tag -->
+		<link rel="canonical" href={currentUrl} />
+
+		<!-- Hreflang (다국어 대체 URL) -->
+		<link rel="alternate" hreflang="ko" href={koUrl} />
+		<link rel="alternate" hreflang="en" href={enUrl} />
+		<link rel="alternate" hreflang="x-default" href={koUrl} />
 
 		<!-- Open Graph / Facebook -->
 		<meta property="og:type" content="website" />
 		<meta property="og:url" content={currentUrl} />
-		<meta property="og:title" content={`${title} | DailyTools26`} />
+		<meta property="og:title" content={fullTitle} />
 		<meta property="og:description" content={description} />
+		<meta property="og:image" content={ogImage} />
 		<meta
 			property="og:locale"
 			content={lang === "ko" ? "ko_KR" : "en_US"}
 		/>
+		<meta property="og:site_name" content="DailyTools26" />
 
-		<!-- Twitter -->
-		<meta property="twitter:card" content="summary" />
+		<!-- Twitter / X Cards -->
+		<meta property="twitter:card" content="summary_large_image" />
 		<meta property="twitter:url" content={currentUrl} />
-		<meta property="twitter:title" content={`${title} | DailyTools26`} />
+		<meta property="twitter:title" content={fullTitle} />
 		<meta property="twitter:description" content={description} />
+		<meta property="twitter:image" content={ogImage} />
+
+		<!-- Schema.org JSON-LD -->
+		<script type="application/ld+json" set:html={JSON.stringify(websiteSchema)} />
 	</head>
 	<body>
 		<Nav />
@@ -90,3 +151,4 @@ const currentUrl = new URL(Astro.url.pathname, siteUrl).href;
 		min-height: calc(100vh - 64px); /* Nav height */
 	}
 </style>
+
