@@ -1,0 +1,483 @@
+---
+import { getLangFromUrl } from '../../i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+
+const i18n = {
+  ko: {
+    title: '3.3% 프리랜서 세금 & 환급 계산기',
+    incomeAmount: '연간 총 수입 금액 (원)',
+    expenseRate: '단순경비율 (%)',
+    expenseRateHelp: '💡 프리랜서 업종코드에 맞춰 기본 단순경비율(약 60%)이 제공되며, 직접 조정 가능합니다.',
+    deductionCount: '기본공제 인원 (본인 포함)',
+    calculate: '계산하기',
+    clear: '초기화',
+    results: '예상 정산 결과',
+    refundText: '환급 예상액',
+    paymentText: '추가 납부액',
+    withheldTax: '이미 납부한 세금 (3.3% 원천징수)',
+    withheldNational: '기납부 소득세 (3%)',
+    withheldLocal: '기납부 지방소득세 (0.3%)',
+    estimatedTax: '실제 결정 세액 (종합소득세 합계)',
+    estimatedNational: '결정 종합소득세',
+    estimatedLocal: '결정 지방소득세',
+    taxableBase: '예상 과세표준',
+    placeholderIncome: '연간 총 수입 입력 (예: 25000000)',
+    disclaimer: '※ 본 계산기는 단순경비율 적용 대상자인 간편장부 대상자를 기준으로 한 모의 계산입니다. 실제 종합소득세 신고 시 인적공제, 세액공제 및 장부 작성 여부에 따라 결과가 달라집니다.'
+  },
+  en: {
+    title: '3.3% Freelancer Tax & Refund Calculator',
+    incomeAmount: 'Annual Gross Income (KRW)',
+    expenseRate: 'Simple Expense Rate (%)',
+    expenseRateHelp: '💡 Default rate is approx 60% for freelancers, adjustable.',
+    deductionCount: 'Number of Dependents',
+    calculate: 'Calculate',
+    clear: 'Clear',
+    results: 'Estimated Tax Settlement',
+    refundText: 'Estimated Refund',
+    paymentText: 'Estimated Additional Tax',
+    withheldTax: 'Prepaid Withholding Tax (3.3%)',
+    withheldNational: 'Prepaid Income Tax (3%)',
+    withheldLocal: 'Prepaid Local Tax (0.3%)',
+    estimatedTax: 'Final Decided Tax (Global Income Tax)',
+    estimatedNational: 'Decided National Income Tax',
+    estimatedLocal: 'Decided Local Income Tax',
+    taxableBase: 'Estimated Taxable Base',
+    placeholderIncome: 'Enter annual gross income (e.g. 25000000)',
+    disclaimer: '* This is a simplified simulation for freelancers eligible for simple expense rates. Actual tax returns may vary based on specific deductions and filing methods.'
+  }
+};
+
+const t = i18n[lang] || i18n['ko'];
+---
+
+<div class="tool-freelancer-tax">
+  <div class="calculator-grid">
+    <!-- 입력 영역 -->
+    <div class="input-section">
+      <div class="input-group-wrapper">
+        <h3>{t.title}</h3>
+        
+        <div class="input-group">
+          <label for="income-amount">{t.incomeAmount}</label>
+          <input type="number" id="income-amount" placeholder={t.placeholderIncome} min="0" step="50000" />
+        </div>
+
+        <div class="input-group">
+          <label for="expense-rate">{t.expenseRate}</label>
+          <div class="range-wrapper">
+            <input type="range" id="expense-rate-slider" min="10" max="95" value="60" step="0.5" />
+            <span class="range-val"><span id="expense-rate-text">60</span>%</span>
+          </div>
+          <small class="input-help">{t.expenseRateHelp}</small>
+        </div>
+
+        <div class="input-group">
+          <label for="deduction-count">{t.deductionCount}</label>
+          <input type="number" id="deduction-count" value="1" min="1" max="10" />
+        </div>
+      </div>
+
+      <div class="action-buttons">
+        <button id="calc-btn" class="btn-primary">{t.calculate}</button>
+        <button id="clear-btn" class="btn-secondary">{t.clear}</button>
+      </div>
+    </div>
+
+    <!-- 결과 영역 -->
+    <div class="result-section">
+      <h3>{t.results}</h3>
+      
+      <div class="result-box highlighted">
+        <span class="result-label" id="res-result-title">{t.refundText}</span>
+        <span class="result-value accent" id="res-result-value">0 원</span>
+      </div>
+
+      <div class="result-box">
+        <span class="result-label">{t.withheldTax}</span>
+        <span class="result-value" id="res-withheld-total">0 원</span>
+      </div>
+
+      <div class="tax-detail-list">
+        <div class="detail-item">
+          <span>{t.withheldNational}</span>
+          <span id="res-withheld-national">0 원</span>
+        </div>
+        <div class="detail-item">
+          <span>{t.withheldLocal}</span>
+          <span id="res-withheld-local">0 원</span>
+        </div>
+      </div>
+
+      <div class="result-box" style="margin-top: 0.5rem;">
+        <span class="result-label">{t.estimatedTax}</span>
+        <span class="result-value danger-text" id="res-decided-total">0 원</span>
+      </div>
+
+      <div class="tax-detail-list">
+        <div class="detail-item">
+          <span>{t.taxableBase}</span>
+          <span id="res-taxable-base">0 원</span>
+        </div>
+        <div class="detail-item">
+          <span>{t.estimatedNational}</span>
+          <span id="res-decided-national">0 원</span>
+        </div>
+        <div class="detail-item">
+          <span>{t.estimatedLocal}</span>
+          <span id="res-decided-local">0 원</span>
+        </div>
+      </div>
+
+      <p class="disclaimer-text">{t.disclaimer}</p>
+    </div>
+  </div>
+</div>
+
+<style>
+  .tool-freelancer-tax {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .calculator-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  @media (min-width: 768px) {
+    .calculator-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .input-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .input-group-wrapper {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+  }
+
+  h3 {
+    margin: 0 0 1.25rem 0;
+    font-size: 1.125rem;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.75rem;
+  }
+
+  .input-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1.25rem;
+  }
+
+  .input-group:last-child {
+    margin-bottom: 0;
+  }
+
+  label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+  }
+
+  input[type="number"] {
+    width: 100%;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius);
+    font-size: 1rem;
+    transition: all 0.2s;
+  }
+
+  input[type="number"]:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+  }
+
+  .range-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  input[type="range"] {
+    flex: 1;
+    accent-color: var(--accent);
+  }
+
+  .range-val {
+    min-width: 3.5rem;
+    text-align: right;
+    font-weight: bold;
+    color: var(--accent);
+  }
+
+  .input-help {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 0.375rem;
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    padding: 0.875rem;
+    border-radius: var(--radius);
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.2s;
+    flex: 1;
+  }
+
+  .btn-primary:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    padding: 0.875rem;
+    border-radius: var(--radius);
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.2s;
+    flex: 1;
+  }
+
+  .btn-secondary:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+
+  .result-section {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .result-box {
+    background: var(--bg-hover);
+    padding: 1.25rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .result-box.highlighted {
+    background: rgba(0, 220, 130, 0.03);
+    border-color: rgba(0, 220, 130, 0.2);
+  }
+
+  .result-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+  }
+
+  .result-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    word-break: break-all;
+  }
+
+  .result-value.accent {
+    color: var(--accent);
+  }
+
+  .danger-text {
+    color: #ef4444;
+  }
+
+  .tax-detail-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+    border-top: 1px dashed var(--border);
+    border-bottom: 1px dashed var(--border);
+  }
+
+  .detail-item {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+  }
+
+  .detail-item span:last-child {
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+
+  .disclaimer-text {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin-top: 0.5rem;
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // Inputs
+    const incomeInput = document.getElementById('income-amount') as HTMLInputElement;
+    const expenseSlider = document.getElementById('expense-rate-slider') as HTMLInputElement;
+    const expenseText = document.getElementById('expense-rate-text');
+    const deductionInput = document.getElementById('deduction-count') as HTMLInputElement;
+
+    // Outputs
+    const resResultTitle = document.getElementById('res-result-title');
+    const resResultValue = document.getElementById('res-result-value');
+    const resWithheldTotal = document.getElementById('res-withheld-total');
+    const resWithheldNational = document.getElementById('res-withheld-national');
+    const resWithheldLocal = document.getElementById('res-withheld-local');
+    const resDecidedTotal = document.getElementById('res-decided-total');
+    const resTaxableBase = document.getElementById('res-taxable-base');
+    const resDecidedNational = document.getElementById('res-decided-national');
+    const resDecidedLocal = document.getElementById('res-decided-local');
+
+    // Buttons
+    const calcBtn = document.getElementById('calc-btn');
+    const clearBtn = document.getElementById('clear-btn');
+
+    const formatNumber = (num: number, unit = ' 원') => {
+      return new Intl.NumberFormat().format(Math.round(num)) + unit;
+    };
+
+    const isKo = document.documentElement.lang === 'ko';
+
+    // Slider update
+    if (expenseSlider && expenseText) {
+      expenseSlider.addEventListener('input', () => {
+        expenseText.textContent = expenseSlider.value;
+      });
+    }
+
+    const calculate = () => {
+      const income = parseFloat(incomeInput.value) || 0;
+      if (income <= 0) return;
+
+      const expenseRate = parseFloat(expenseSlider.value) || 60;
+      const deductionCount = parseInt(deductionInput.value) || 1;
+
+      // 1. Withholding tax: 3% national, 0.3% local
+      const withheldNational = Math.floor(income * 0.03 / 10) * 10;
+      const withheldLocal = Math.floor(income * 0.003 / 10) * 10;
+      const withheldTotal = withheldNational + withheldLocal;
+
+      // 2. Taxable Income (소득금액)
+      const taxableIncome = income * (1 - expenseRate / 100);
+
+      // 3. Taxable Base (과세표준): deduct 1.5M per person
+      const taxableBase = Math.max(0, taxableIncome - (deductionCount * 1500000));
+
+      // 4. Tax Brackets (종합소득세율)
+      let decidedNational = 0;
+      if (taxableBase <= 14000000) {
+        decidedNational = taxableBase * 0.06;
+      } else if (taxableBase <= 50000000) {
+        decidedNational = 14000000 * 0.06 + (taxableBase - 14000000) * 0.15;
+      } else if (taxableBase <= 88000000) {
+        decidedNational = 14000000 * 0.06 + 36000000 * 0.15 + (taxableBase - 50000000) * 0.24;
+      } else if (taxableBase <= 150000000) {
+        decidedNational = 14000000 * 0.06 + 36000000 * 0.15 + 38000000 * 0.24 + (taxableBase - 88000000) * 0.35;
+      } else if (taxableBase <= 300000000) {
+        decidedNational = 14000000 * 0.06 + 36000000 * 0.15 + 38000000 * 0.24 + 62000000 * 0.35 + (taxableBase - 150000000) * 0.38;
+      } else if (taxableBase <= 500000000) {
+        decidedNational = 14000000 * 0.06 + 36000000 * 0.15 + 38000000 * 0.24 + 62000000 * 0.35 + 150000000 * 0.38 + (taxableBase - 300000000) * 0.40;
+      } else if (taxableBase <= 1000000000) {
+        decidedNational = 14000000 * 0.06 + 36000000 * 0.15 + 38000000 * 0.24 + 62000000 * 0.35 + 150000000 * 0.38 + 200000000 * 0.40 + (taxableBase - 500000000) * 0.42;
+      } else {
+        decidedNational = 14000000 * 0.06 + 36000000 * 0.15 + 38000000 * 0.24 + 62000000 * 0.35 + 150000000 * 0.38 + 200000000 * 0.40 + 500000000 * 0.42 + (taxableBase - 1000000000) * 0.45;
+      }
+
+      decidedNational = Math.floor(decidedNational / 10) * 10;
+      const decidedLocal = Math.floor(decidedNational * 0.1 / 10) * 10;
+      const decidedTotal = decidedNational + decidedLocal;
+
+      // 5. Refund or Additional payment
+      const diff = withheldTotal - decidedTotal;
+
+      if (resResultTitle && resResultValue) {
+        if (diff >= 0) {
+          resResultTitle.textContent = isKo ? '환급 예상액' : 'Estimated Refund';
+          resResultValue.textContent = formatNumber(diff);
+          resResultValue.className = 'result-value accent';
+        } else {
+          resResultTitle.textContent = isKo ? '추가 납부액' : 'Estimated Additional Tax';
+          resResultValue.textContent = formatNumber(Math.abs(diff));
+          resResultValue.className = 'result-value danger-text';
+        }
+      }
+
+      if (resWithheldTotal) resWithheldTotal.textContent = formatNumber(withheldTotal);
+      if (resWithheldNational) resWithheldNational.textContent = formatNumber(withheldNational);
+      if (resWithheldLocal) resWithheldLocal.textContent = formatNumber(withheldLocal);
+      if (resDecidedTotal) resDecidedTotal.textContent = formatNumber(decidedTotal);
+      if (resTaxableBase) resTaxableBase.textContent = formatNumber(taxableBase);
+      if (resDecidedNational) resDecidedNational.textContent = formatNumber(decidedNational);
+      if (resDecidedLocal) resDecidedLocal.textContent = formatNumber(decidedLocal);
+    };
+
+    const clear = () => {
+      incomeInput.value = '';
+      expenseSlider.value = '60';
+      if (expenseText) expenseText.textContent = '60';
+      deductionInput.value = '1';
+
+      if (resResultTitle) resResultTitle.textContent = isKo ? '환급 예상액' : 'Estimated Refund';
+      if (resResultValue) {
+        resResultValue.textContent = '0 원';
+        resResultValue.className = 'result-value accent';
+      }
+      if (resWithheldTotal) resWithheldTotal.textContent = '0 원';
+      if (resWithheldNational) resWithheldNational.textContent = '0 원';
+      if (resWithheldLocal) resWithheldLocal.textContent = '0 원';
+      if (resDecidedTotal) resDecidedTotal.textContent = '0 원';
+      if (resTaxableBase) resTaxableBase.textContent = '0 원';
+      if (resDecidedNational) resDecidedNational.textContent = '0 원';
+      if (resDecidedLocal) resDecidedLocal.textContent = '0 원';
+    };
+
+    if (calcBtn) calcBtn.addEventListener('click', calculate);
+    if (clearBtn) clearBtn.addEventListener('click', clear);
+
+    // Enter key support
+    const inputs = [incomeInput, deductionInput];
+    inputs.forEach(input => {
+      if (input) {
+        input.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') {
+            calculate();
+          }
+        });
+      }
+    });
+  });
+</script>

@@ -17,16 +17,16 @@ export const tools: Tool[] = [
     id: 'my-new-tool',             // URL에 사용될 고유 슬러그 (예: /dev/my-new-tool)
     name: {
       ko: '내 새로운 도구',
-      en: 'My New Tool'
+      en: 'My New Tool'            // (참고: 영어는 미지원하므로 ko와 동일하거나 임의 입력)
     },
     category: 'dev',               // 카테고리 슬러그 (text, dev, color, convert 등)
     categoryLabel: {
       ko: '개발',
-      en: 'Development'
+      en: 'Development'            // (참고: 영어는 미지원하므로 ko와 동일하거나 임의 입력)
     },
     description: {
       ko: '이 도구가 어떤 역할을 하는지 짧게 설명합니다.',
-      en: 'A short description of what this tool does.'
+      en: 'A short description.'   // (참고: 영어는 미지원하므로 ko와 동일하거나 임의 입력)
     },
     icon: '✨',                      // 메인 화면과 상세 화면에 표시될 이모지
     tags: ['새로운', '도구', 'new', 'tool'], // 검색에 활용될 키워드들
@@ -38,11 +38,12 @@ export const tools: Tool[] = [
 > **💡 주의사항**
 > `id` 필드는 URL 경로가 되므로 영문 소문자와 하이픈(`-`)만 사용하는 것을 권장합니다.
 > 나중에 만들 UI 컴포넌트의 파일명과 **정확히 일치**해야 합니다.
+> *현재 앱은 영어 번역 페이지를 제공하지 않으므로, 데이터 스키마 타입 유지를 위해 필요한 `en` 필드에는 `ko`와 동일한 텍스트 혹은 간단한 영문을 기입하시면 됩니다.*
 
 > **🔍 SEO (검색엔진 최적화) 팁**
 > `description`과 `tags` 필드는 사이트 검색뿐만 아니라, **검색엔진(구글, 네이버 등)**이 이 페이지가 어떤 도구인지 이해하는 데 직접적으로 사용됩니다.
 > - **description**: 메타 설명(`meta description`)과 Open Graph 카드 설명으로 들어갑니다. 매력적이고 명확하게 적어주세요.
-> - **tags**: 페이지의 `meta keywords`로 들어갑니다. 사람들이 이 도구를 찾기 위해 검색할 만한 키워드(예: '계산기', '변환', 'calculator' 등)를 최대한 많이 넣어주세요.
+> - **tags**: 사람들이 이 도구를 찾기 위해 검색할 만한 키워드(예: '계산기', '변환' 등)를 최대한 많이 넣어주세요.
 
 ---
 
@@ -54,30 +55,34 @@ export const tools: Tool[] = [
 예를 들어, `id`를 `my-new-tool`로 설정했다면:
 👉 `src/components/tools/my-new-tool.astro` 파일을 만듭니다.
 
+### 📐 도구별 최적의 레이아웃 설계 가이드 (Layout Guidelines)
+
+도구의 성격과 다루는 데이터에 따라 사용자가 가장 편리하게 이용할 수 있는 레이아웃을 다르게 구성해야 합니다. 단순히 기본 템플릿을 일괄 적용하기보다, 도구의 기능과 입력/출력 형식을 고려하여 가장 직관적인 화면 배치를 적용해 주세요.
+
+*   **좌우 1:1 분할 레이아웃 (Side-by-Side Layout)**
+    *   **적합한 도구**: 입력값과 결과값을 나란히 비교하거나 동시에 보아야 하는 도구 (예: Base64 변환기, JSON 포맷터, 대소문자 변환기, 마크다운 미리보기 등)
+    *   **디자인 가이드**: 화면 너비가 넓은 데스크톱 환경에서는 좌측에 입력창, 우측에 출력창을 1:1 비율로 배치하고, 모바일 화면에서는 자연스럽게 상하로 적층(Stacked)되도록 반응형 CSS를 작성합니다.
+*   **중앙 단일 칼럼 레이아웃 (Centered Single Column Layout)**
+    *   **적합한 도구**: 입력 폼이 단순하고 결과가 한눈에 들어오는 도구 (예: QR 코드 생성기, 무작위 비밀번호 생성기, 간단한 단위 계산기 등)
+    *   **디자인 가이드**: 전체 화면 너비가 너무 넓어지면 인풋 필드가 비대해져 사용하기 어렵습니다. 최대 가로폭(`max-width: 600px` 등)을 제한하고 중앙 정렬하여 시인성을 높입니다.
+*   **시각 프리뷰 + 우측 제어판 레이아웃 (Visual Preview & Control Panel)**
+    *   **적합한 도구**: 시각적인 요소(색상, 그래픽, 그림자 등)의 실시간 변화를 모니터링하며 조절해야 하는 도구 (예: 컬러 픽커, CSS 그림자 생성기, 그래디언트 메이커 등)
+    *   **디자인 가이드**: 결과물을 큼직하게 확인할 수 있는 미리보기 영역(Preview)을 한쪽에 크게 배치하고, 색상 조절 슬라이더나 인풋 등의 컨트롤 패널을 반대편(데스크톱 기준 우측 등)에 모아서 정렬합니다.
+
+---
+
 ### 컴포넌트 템플릿 (복사해서 사용하세요)
+
+영어 지원이 중단되었으므로 별도의 다국어 처리(`i18n` 유틸) 없이 한글 텍스트를 바로 작성하면 됩니다.
 
 ```astro
 ---
-import { getLangFromUrl } from '../../i18n/utils';
-
-// 1. 현재 언어 가져오기
-const lang = getLangFromUrl(Astro.url);
-
-// 2. 도구 내부에서 사용할 다국어 텍스트 정의
-const i18n = {
-  ko: {
-    placeholder: '입력값을 넣어주세요...',
-    result: '결과:',
-    button: '변환하기'
-  },
-  en: {
-    placeholder: 'Enter input here...',
-    result: 'Result:',
-    button: 'Convert'
-  }
+// 별도의 다국어 처리가 필요 없습니다.
+const t = {
+  placeholder: '입력값을 넣어주세요...',
+  result: '결과:',
+  button: '변환하기'
 };
-
-const t = i18n[lang] || i18n['ko'];
 ---
 
 <!-- 3. 도구의 UI 구성 -->

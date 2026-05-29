@@ -1,0 +1,423 @@
+---
+import { getLangFromUrl } from '../../i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+
+const i18n = {
+  ko: {
+    title: '퇴직소득세 계산기',
+    totalRetirement: '퇴직금 총액 (원)',
+    workingYears: '근속 연수 (년)',
+    calculate: '계산하기',
+    clear: '초기화',
+    results: '예상 계산 결과',
+    netPay: '세후 실수령 퇴직금',
+    totalTax: '총 납부 세액 합계',
+    retirementTax: '퇴직소득세 (국세)',
+    localTax: '지방소득세 (10%)',
+    workingDeduction: '근속연수공제액',
+    taxableBase: '예상 과세표준',
+    placeholderRetirement: '퇴직금 입력 (예: 80000000)',
+    placeholderYears: '근속 년수 입력 (예: 10)',
+    disclaimer: '※ 본 계산기는 2023년 개정 세법을 반영한 퇴직소득세 모의 계산기입니다. 실제 퇴직소득세는 중간정산 합산 여부 및 퇴직소득 세액 감면 등에 따라 차이가 발생할 수 있습니다.'
+  },
+  en: {
+    title: 'Retirement Income Tax Calculator',
+    totalRetirement: 'Total Severance Pay (KRW)',
+    workingYears: 'Working Years',
+    calculate: 'Calculate',
+    clear: 'Clear',
+    results: 'Estimated Results',
+    netPay: 'Net Retirement Pay',
+    totalTax: 'Total Estimated Tax',
+    retirementTax: 'Retirement Income Tax (National)',
+    localTax: 'Local Income Tax (10%)',
+    workingDeduction: 'Working Year Deduction',
+    taxableBase: 'Estimated Taxable Base',
+    placeholderRetirement: 'Enter severance pay (e.g. 80000000)',
+    placeholderYears: 'Enter working years (e.g. 10)',
+    disclaimer: '* This calculator implements the revised South Korean retirement income tax formulas. Actual taxes may vary depending on prior mid-term settlements or tax credits.'
+  }
+};
+
+const t = i18n[lang] || i18n['ko'];
+---
+
+<div class="tool-retirement-tax">
+  <div class="calculator-grid">
+    <!-- 입력 영역 -->
+    <div class="input-section">
+      <div class="input-group-wrapper">
+        <h3>{t.title}</h3>
+        
+        <div class="input-group">
+          <label for="total-retirement">{t.totalRetirement}</label>
+          <input type="number" id="total-retirement" placeholder={t.placeholderRetirement} min="0" step="1000000" />
+        </div>
+
+        <div class="input-group">
+          <label for="working-years">{t.workingYears}</label>
+          <input type="number" id="working-years" placeholder={t.placeholderYears} min="1" max="60" value="10" />
+        </div>
+      </div>
+
+      <div class="action-buttons">
+        <button id="calc-btn" class="btn-primary">{t.calculate}</button>
+        <button id="clear-btn" class="btn-secondary">{t.clear}</button>
+      </div>
+    </div>
+
+    <!-- 결과 영역 -->
+    <div class="result-section">
+      <h3>{t.results}</h3>
+      
+      <div class="result-box highlighted">
+        <span class="result-label">{t.netPay}</span>
+        <span class="result-value accent" id="res-net-pay">0 원</span>
+      </div>
+
+      <div class="result-box">
+        <span class="result-label">{t.totalTax}</span>
+        <span class="result-value danger-text" id="res-total-tax">0 원</span>
+      </div>
+
+      <div class="tax-detail-list">
+        <div class="detail-item">
+          <span>{t.retirementTax}</span>
+          <span id="res-retirement-tax">0 원</span>
+        </div>
+        <div class="detail-item">
+          <span>{t.localTax}</span>
+          <span id="res-local-tax">0 원</span>
+        </div>
+        <div class="detail-item">
+          <span>{t.workingDeduction}</span>
+          <span id="res-working-deduction">0 원</span>
+        </div>
+        <div class="detail-item">
+          <span>{t.taxableBase}</span>
+          <span id="res-taxable-base">0 원</span>
+        </div>
+      </div>
+
+      <p class="disclaimer-text">{t.disclaimer}</p>
+    </div>
+  </div>
+</div>
+
+<style>
+  .tool-retirement-tax {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .calculator-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  @media (min-width: 768px) {
+    .calculator-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .input-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .input-group-wrapper {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+  }
+
+  h3 {
+    margin: 0 0 1.25rem 0;
+    font-size: 1.125rem;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.75rem;
+  }
+
+  .input-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1.25rem;
+  }
+
+  .input-group:last-child {
+    margin-bottom: 0;
+  }
+
+  label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+  }
+
+  input[type="number"] {
+    width: 100%;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius);
+    font-size: 1rem;
+    transition: all 0.2s;
+  }
+
+  input[type="number"]:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    padding: 0.875rem;
+    border-radius: var(--radius);
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.2s;
+    flex: 1;
+  }
+
+  .btn-primary:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    padding: 0.875rem;
+    border-radius: var(--radius);
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.2s;
+    flex: 1;
+  }
+
+  .btn-secondary:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+
+  .result-section {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .result-box {
+    background: var(--bg-hover);
+    padding: 1.25rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .result-box.highlighted {
+    background: rgba(0, 220, 130, 0.03);
+    border-color: rgba(0, 220, 130, 0.2);
+  }
+
+  .result-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+  }
+
+  .result-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    word-break: break-all;
+  }
+
+  .result-value.accent {
+    color: var(--accent);
+  }
+
+  .danger-text {
+    color: #ef4444;
+  }
+
+  .tax-detail-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+    border-top: 1px dashed var(--border);
+    border-bottom: 1px dashed var(--border);
+  }
+
+  .detail-item {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+  }
+
+  .detail-item span:last-child {
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+
+  .disclaimer-text {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin-top: 0.5rem;
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // Inputs
+    const retirementInput = document.getElementById('total-retirement') as HTMLInputElement;
+    const yearsInput = document.getElementById('working-years') as HTMLInputElement;
+
+    // Outputs
+    const resNetPay = document.getElementById('res-net-pay');
+    const resTotalTax = document.getElementById('res-total-tax');
+    const resRetirementTax = document.getElementById('res-retirement-tax');
+    const resLocalTax = document.getElementById('res-local-tax');
+    const resWorkingDeduction = document.getElementById('res-working-deduction');
+    const resTaxableBase = document.getElementById('res-taxable-base');
+
+    // Buttons
+    const calcBtn = document.getElementById('calc-btn');
+    const clearBtn = document.getElementById('clear-btn');
+
+    const formatNumber = (num: number, unit = ' 원') => {
+      return new Intl.NumberFormat().format(Math.round(num)) + unit;
+    };
+
+    const calculate = () => {
+      const retirementPay = parseFloat(retirementInput.value) || 0;
+      const years = parseInt(yearsInput.value) || 1;
+
+      if (retirementPay <= 0 || years <= 0) return;
+
+      // 1. Working Year Deduction (근속연수공제)
+      let workingDeduction = 0;
+      if (years <= 5) {
+        workingDeduction = years * 1000000;
+      } else if (years <= 10) {
+        workingDeduction = 5000000 + (years - 5) * 2000000;
+      } else if (years <= 20) {
+        workingDeduction = 15000000 + (years - 10) * 2500000;
+      } else {
+        workingDeduction = 40000000 + (years - 20) * 3000000;
+      }
+
+      // 2. Converted Salary (환산급여): (퇴직금 - 근속연수공제) / 근속연수 * 12
+      const baseDifference = Math.max(0, retirementPay - workingDeduction);
+      const convertedSalary = (baseDifference / years) * 12;
+
+      // 3. Converted Salary Deduction (환산급여공제)
+      let convertedDeduction = 0;
+      if (convertedSalary <= 8000000) {
+        convertedDeduction = convertedSalary;
+      } else if (convertedSalary <= 70000000) {
+        convertedDeduction = 8000000 + (convertedSalary - 8000000) * 0.60;
+      } else if (convertedSalary <= 120000000) {
+        convertedDeduction = 45200000 + (convertedSalary - 70000000) * 0.45;
+      } else if (convertedSalary <= 300000000) {
+        convertedDeduction = 67700000 + (convertedSalary - 120000000) * 0.35;
+      } else {
+        convertedDeduction = 130700000 + (convertedSalary - 300000000) * 0.25;
+      }
+
+      // 4. Converted Taxable Base (환산과세표준)
+      const convertedTaxableBase = Math.max(0, convertedSalary - convertedDeduction);
+
+      // 5. Converted Computed Tax (환산산출세액) - using basic tax rates
+      let convertedTax = 0;
+      if (convertedTaxableBase <= 14000000) {
+        convertedTax = convertedTaxableBase * 0.06;
+      } else if (convertedTaxableBase <= 50000000) {
+        convertedTax = 14000000 * 0.06 + (convertedTaxableBase - 14000000) * 0.15;
+      } else if (convertedTaxableBase <= 88000000) {
+        convertedTax = 14000000 * 0.06 + 36000000 * 0.15 + (convertedTaxableBase - 50000000) * 0.24;
+      } else if (convertedTaxableBase <= 150000000) {
+        convertedTax = 14000000 * 0.06 + 36000000 * 0.15 + 38000000 * 0.24 + (convertedTaxableBase - 88000000) * 0.35;
+      } else if (convertedTaxableBase <= 300000000) {
+        convertedTax = 14000000 * 0.06 + 36000000 * 0.15 + 38000000 * 0.24 + 62000000 * 0.35 + (convertedTaxableBase - 150000000) * 0.38;
+      } else if (convertedTaxableBase <= 500000000) {
+        convertedTax = 14000000 * 0.06 + 36000000 * 0.15 + 38000000 * 0.24 + 62000000 * 0.35 + 150000000 * 0.38 + (convertedTaxableBase - 300000000) * 0.40;
+      } else if (convertedTaxableBase <= 1000000000) {
+        convertedTax = 14000000 * 0.06 + 36000000 * 0.15 + 38000000 * 0.24 + 62000000 * 0.35 + 150000000 * 0.38 + 200000000 * 0.40 + (convertedTaxableBase - 500000000) * 0.42;
+      } else {
+        convertedTax = 14000000 * 0.06 + 36000000 * 0.15 + 38000000 * 0.24 + 62000000 * 0.35 + 150000000 * 0.38 + 200000000 * 0.40 + 500000000 * 0.42 + (convertedTaxableBase - 1000000000) * 0.45;
+      }
+
+      // 6. Final Retirement Income Tax: Converted Computed Tax / 12 * years
+      let retirementTax = (convertedTax / 12) * years;
+      retirementTax = Math.floor(retirementTax / 10) * 10; // Floor to 10 KRW
+
+      // 7. Local Tax: 10%
+      const localTax = Math.floor(retirementTax * 0.1 / 10) * 10;
+
+      // 8. Total Tax
+      const totalTax = retirementTax + localTax;
+
+      // 9. Net pay
+      const netPay = retirementPay - totalTax;
+
+      // Display outputs
+      if (resNetPay) resNetPay.textContent = formatNumber(netPay);
+      if (resTotalTax) resTotalTax.textContent = formatNumber(totalTax);
+      if (resRetirementTax) resRetirementTax.textContent = formatNumber(retirementTax);
+      if (resLocalTax) resLocalTax.textContent = formatNumber(localTax);
+      if (resWorkingDeduction) resWorkingDeduction.textContent = formatNumber(workingDeduction);
+      if (resTaxableBase) resTaxableBase.textContent = formatNumber(baseDifference / years * 12);
+    };
+
+    const clear = () => {
+      retirementInput.value = '';
+      yearsInput.value = '10';
+
+      if (resNetPay) resNetPay.textContent = '0 원';
+      if (resTotalTax) resTotalTax.textContent = '0 원';
+      if (resRetirementTax) resRetirementTax.textContent = '0 원';
+      if (resLocalTax) resLocalTax.textContent = '0 원';
+      if (resWorkingDeduction) resWorkingDeduction.textContent = '0 원';
+      if (resTaxableBase) resTaxableBase.textContent = '0 원';
+    };
+
+    if (calcBtn) calcBtn.addEventListener('click', calculate);
+    if (clearBtn) clearBtn.addEventListener('click', clear);
+
+    // Enter key support
+    const inputs = [retirementInput, yearsInput];
+    inputs.forEach(input => {
+      if (input) {
+        input.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') {
+            calculate();
+          }
+        });
+      }
+    });
+  });
+</script>

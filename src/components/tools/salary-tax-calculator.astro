@@ -1,0 +1,566 @@
+---
+import { getLangFromUrl } from '../../i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+
+const i18n = {
+  ko: {
+    title: '근로소득 실수령액 계산기',
+    salaryType: '급여 유형',
+    monthly: '월급',
+    annual: '연봉',
+    salaryAmount: '급여액 (원)',
+    nonTaxable: '비과세액 (원)',
+    nonTaxableHelp: '💡 기본 식대(월 최대 20만 원) 등 세금을 부과하지 않는 금액입니다.',
+    dependents: '부양가족 수 (본인 포함)',
+    children: '20세 이하 자녀 수',
+    calculate: '계산하기',
+    clear: '초기화',
+    results: '계산 결과 (월 기준)',
+    netPay: '월 실수령액',
+    totalDeductions: '총 공제 금액',
+    nationalPension: '국민연금 (4.5%)',
+    healthInsurance: '건강보험 (3.545%)',
+    longTermCare: '장기요양보험 (건보의 12.95%)',
+    employmentInsurance: '고용보험 (0.9%)',
+    incomeTax: '근로소득세 (소득세)',
+    localIncomeTax: '지방소득세 (소득세의 10%)',
+    placeholderSalary: '급여 입력 (예: 4000000)',
+    placeholderNonTaxable: '비과세 입력 (기본 200000)',
+    disclaimer: '※ 본 계산기는 근로소득 간이세액표를 기준으로 추정한 간이 결과이며, 실제 실수령액은 개인별 세액공제 및 수당에 따라 달라질 수 있습니다.'
+  },
+  en: {
+    title: 'Salary Net Pay Calculator',
+    salaryType: 'Salary Type',
+    monthly: 'Monthly',
+    annual: 'Annual',
+    salaryAmount: 'Salary (KRW)',
+    nonTaxable: 'Non-Taxable Income (KRW)',
+    nonTaxableHelp: '💡 Tax-exempt amount, e.g. meal allowance up to 200k KRW/month.',
+    dependents: 'Number of Dependents',
+    children: 'Children (Under 20)',
+    calculate: 'Calculate',
+    clear: 'Clear',
+    results: 'Results (Monthly Base)',
+    netPay: 'Estimated Net Monthly Pay',
+    totalDeductions: 'Total Deductions',
+    nationalPension: 'National Pension (4.5%)',
+    healthInsurance: 'Health Insurance (3.545%)',
+    longTermCare: 'Long-term Care (12.95% of HI)',
+    employmentInsurance: 'Employment Insurance (0.9%)',
+    incomeTax: 'Earned Income Tax',
+    localIncomeTax: 'Local Income Tax (10% of Tax)',
+    placeholderSalary: 'Enter salary (e.g. 4000000)',
+    placeholderNonTaxable: 'Non-taxable (default 200000)',
+    disclaimer: '* This calculator provides an estimate based on standard Korean tax tables. Actual net pay may vary depending on individual tax credits and allowances.'
+  }
+};
+
+const t = i18n[lang] || i18n['ko'];
+---
+
+<div class="tool-salary-tax">
+  <div class="calculator-grid">
+    <!-- 입력 영역 -->
+    <div class="input-section">
+      <div class="input-group-wrapper">
+        <h3>{t.title}</h3>
+        
+        <div class="input-group">
+          <label>{t.salaryType}</label>
+          <div class="toggle-buttons">
+            <button type="button" id="type-monthly" class="toggle-btn active">{t.monthly}</button>
+            <button type="button" id="type-annual" class="toggle-btn">{t.annual}</button>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label for="salary-amount" id="label-salary-amount">{t.salaryAmount}</label>
+          <input type="number" id="salary-amount" placeholder={t.placeholderSalary} min="0" step="10000" />
+        </div>
+
+        <div class="input-group">
+          <label for="non-taxable">{t.nonTaxable}</label>
+          <input type="number" id="non-taxable" placeholder={t.placeholderNonTaxable} value="200000" min="0" step="10000" />
+          <small class="input-help">{t.nonTaxableHelp}</small>
+        </div>
+
+        <div class="input-group-row">
+          <div class="input-group half">
+            <label for="dependents-count">{t.dependents}</label>
+            <input type="number" id="dependents-count" value="1" min="1" max="20" />
+          </div>
+          <div class="input-group half">
+            <label for="children-count">{t.children}</label>
+            <input type="number" id="children-count" value="0" min="0" max="20" />
+          </div>
+        </div>
+      </div>
+
+      <div class="action-buttons">
+        <button id="calc-btn" class="btn-primary">{t.calculate}</button>
+        <button id="clear-btn" class="btn-secondary">{t.clear}</button>
+      </div>
+    </div>
+
+    <!-- 결과 영역 -->
+    <div class="result-section">
+      <h3>{t.results}</h3>
+      
+      <div class="result-box highlighted">
+        <span class="result-label">{t.netPay}</span>
+        <span class="result-value accent" id="res-net-pay">0 원</span>
+      </div>
+
+      <div class="result-box">
+        <span class="result-label">{t.totalDeductions}</span>
+        <span class="result-value danger-text" id="res-total-deductions">0 원</span>
+      </div>
+
+      <div class="deductions-list">
+        <div class="deduction-item">
+          <span>{t.nationalPension}</span>
+          <span id="res-pension">0 원</span>
+        </div>
+        <div class="deduction-item">
+          <span>{t.healthInsurance}</span>
+          <span id="res-health">0 원</span>
+        </div>
+        <div class="deduction-item">
+          <span>{t.longTermCare}</span>
+          <span id="res-care">0 원</span>
+        </div>
+        <div class="deduction-item">
+          <span>{t.employmentInsurance}</span>
+          <span id="res-employment">0 원</span>
+        </div>
+        <div class="deduction-item">
+          <span>{t.incomeTax}</span>
+          <span id="res-income-tax">0 원</span>
+        </div>
+        <div class="deduction-item">
+          <span>{t.localIncomeTax}</span>
+          <span id="res-local-tax">0 원</span>
+        </div>
+      </div>
+
+      <p class="disclaimer-text">{t.disclaimer}</p>
+    </div>
+  </div>
+</div>
+
+<style>
+  .tool-salary-tax {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .calculator-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  @media (min-width: 768px) {
+    .calculator-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .input-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .input-group-wrapper {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+  }
+
+  h3 {
+    margin: 0 0 1.25rem 0;
+    font-size: 1.125rem;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.75rem;
+  }
+
+  .input-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1.25rem;
+  }
+
+  .input-group:last-child {
+    margin-bottom: 0;
+  }
+
+  .input-group-row {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+
+  .input-group.half {
+    flex: 1;
+    margin-bottom: 0;
+  }
+
+  label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+  }
+
+  input {
+    width: 100%;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius);
+    font-size: 1rem;
+    transition: all 0.2s;
+  }
+
+  input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+  }
+
+  .input-help {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 0.375rem;
+  }
+
+  .toggle-buttons {
+    display: flex;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.25rem;
+  }
+
+  .toggle-btn {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    border-radius: calc(var(--radius) - 2px);
+    transition: all 0.2s;
+  }
+
+  .toggle-btn.active {
+    background: var(--accent);
+    color: #000;
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    padding: 0.875rem;
+    border-radius: var(--radius);
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.2s;
+    flex: 1;
+  }
+
+  .btn-primary:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    padding: 0.875rem;
+    border-radius: var(--radius);
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.2s;
+    flex: 1;
+  }
+
+  .btn-secondary:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+
+  .result-section {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .result-box {
+    background: var(--bg-hover);
+    padding: 1.25rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .result-box.highlighted {
+    background: rgba(0, 220, 130, 0.03);
+    border-color: rgba(0, 220, 130, 0.2);
+  }
+
+  .result-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+  }
+
+  .result-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    word-break: break-all;
+  }
+
+  .result-value.accent {
+    color: var(--accent);
+  }
+
+  .danger-text {
+    color: #ef4444;
+  }
+
+  .deductions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+    padding: 0.5rem 0;
+    border-top: 1px dashed var(--border);
+    border-bottom: 1px dashed var(--border);
+  }
+
+  .deduction-item {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+  }
+
+  .deduction-item span:last-child {
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+
+  .disclaimer-text {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin-top: 0.5rem;
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // Inputs
+    const salaryInput = document.getElementById('salary-amount') as HTMLInputElement;
+    const nonTaxableInput = document.getElementById('non-taxable') as HTMLInputElement;
+    const dependentsInput = document.getElementById('dependents-count') as HTMLInputElement;
+    const childrenInput = document.getElementById('children-count') as HTMLInputElement;
+
+    // Toggle states
+    const typeMonthly = document.getElementById('type-monthly');
+    const typeAnnual = document.getElementById('type-annual');
+    let isAnnual = false;
+
+    // Outputs
+    const resNetPay = document.getElementById('res-net-pay');
+    const resTotalDeductions = document.getElementById('res-total-deductions');
+    const resPension = document.getElementById('res-pension');
+    const resHealth = document.getElementById('res-health');
+    const resCare = document.getElementById('res-care');
+    const resEmployment = document.getElementById('res-employment');
+    const resIncomeTax = document.getElementById('res-income-tax');
+    const resLocalTax = document.getElementById('res-local-tax');
+
+    // Buttons
+    const calcBtn = document.getElementById('calc-btn');
+    const clearBtn = document.getElementById('clear-btn');
+
+    const formatNumber = (num: number, unit = ' 원') => {
+      if (num < 0) return '0' + unit;
+      return new Intl.NumberFormat().format(Math.round(num)) + unit;
+    };
+
+    // Toggle event listeners
+    if (typeMonthly && typeAnnual) {
+      typeMonthly.addEventListener('click', () => {
+        isAnnual = false;
+        typeMonthly.classList.add('active');
+        typeAnnual.classList.remove('active');
+      });
+      typeAnnual.addEventListener('click', () => {
+        isAnnual = true;
+        typeAnnual.classList.add('active');
+        typeMonthly.classList.remove('active');
+      });
+    }
+
+    const calculate = () => {
+      let rawSalary = parseFloat(salaryInput.value) || 0;
+      if (rawSalary <= 0) return;
+
+      // Convert to monthly salary if it is annual
+      const monthlySalary = isAnnual ? (rawSalary / 12) : rawSalary;
+      const nonTaxable = parseFloat(nonTaxableInput.value) || 0;
+      const dependents = parseInt(dependentsInput.value) || 1;
+      const children = parseInt(childrenInput.value) || 0;
+
+      // Taxable income (monthly)
+      const taxableMonthly = Math.max(0, monthlySalary - nonTaxable);
+
+      // 1. National Pension (4.5%)
+      // Min limit standard income: 390k, Max limit: 6.17M (2025/2026 Korean limits)
+      const pensionIncome = Math.max(390000, Math.min(6170000, taxableMonthly));
+      const pension = Math.floor(pensionIncome * 0.045 / 10) * 10; // Floor to 10 KRW
+
+      // 2. Health Insurance (3.545%)
+      const health = Math.floor(taxableMonthly * 0.03545 / 10) * 10;
+
+      // 3. Long-term Care Insurance (12.95% of health insurance)
+      const care = Math.floor((health * 0.1295) / 10) * 10;
+
+      // 4. Employment Insurance (0.9%)
+      const employment = Math.floor(taxableMonthly * 0.009 / 10) * 10;
+
+      // 5. Earned Income Tax (소득세) - Approximated from Annual Income Tax calculation
+      const annualTaxable = taxableMonthly * 12;
+      
+      // Converted earned income deduction
+      let incomeDeduction = 0;
+      if (annualTaxable <= 5000000) {
+        incomeDeduction = annualTaxable * 0.70;
+      } else if (annualTaxable <= 15000000) {
+        incomeDeduction = 3500000 + (annualTaxable - 5000000) * 0.40;
+      } else if (annualTaxable <= 45000000) {
+        incomeDeduction = 7500000 + (annualTaxable - 15000000) * 0.15;
+      } else if (annualTaxable <= 100000000) {
+        incomeDeduction = 12000000 + (annualTaxable - 45000000) * 0.05;
+      } else {
+        incomeDeduction = 14750000 + (annualTaxable - 100000000) * 0.02;
+      }
+
+      // Basic deductions
+      const basicDeduction = (dependents * 1500000) + (children * 1500000);
+      
+      // Converted taxable base (과세표준)
+      // Estimate standard deduction for insurance: 120,000 + 4% of salary
+      const standardDeduction = 120000 + annualTaxable * 0.04;
+      const taxableBase = Math.max(0, annualTaxable - incomeDeduction - basicDeduction - standardDeduction);
+
+      // Tax brackets
+      let annualTax = 0;
+      if (taxableBase <= 14000000) {
+        annualTax = taxableBase * 0.06;
+      } else if (taxableBase <= 50000000) {
+        annualTax = 14000000 * 0.06 + (taxableBase - 14000000) * 0.15;
+      } else if (taxableBase <= 88000000) {
+        annualTax = 14000000 * 0.06 + 36000000 * 0.15 + (taxableBase - 50000000) * 0.24;
+      } else if (taxableBase <= 150000000) {
+        annualTax = 14000000 * 0.06 + 36000000 * 0.15 + 38000000 * 0.24 + (taxableBase - 88000000) * 0.35;
+      } else if (taxableBase <= 300000000) {
+        annualTax = 14000000 * 0.06 + 36000000 * 0.15 + 38000000 * 0.24 + 62000000 * 0.35 + (taxableBase - 150000000) * 0.38;
+      } else if (taxableBase <= 500000000) {
+        annualTax = 14000000 * 0.06 + 36000000 * 0.15 + 38000000 * 0.24 + 62000000 * 0.35 + 150000000 * 0.38 + (taxableBase - 300000000) * 0.40;
+      } else if (taxableBase <= 1000000000) {
+        annualTax = 14000000 * 0.06 + 36000000 * 0.15 + 38000000 * 0.24 + 62000000 * 0.35 + 150000000 * 0.38 + 200000000 * 0.40 + (taxableBase - 500000000) * 0.42;
+      } else {
+        annualTax = 14000000 * 0.06 + 36000000 * 0.15 + 38000000 * 0.24 + 62000000 * 0.35 + 150000000 * 0.38 + 200000000 * 0.40 + 500000000 * 0.42 + (taxableBase - 1000000000) * 0.45;
+      }
+
+      // Tax credit (approximate)
+      let taxCredit = 0;
+      if (annualTax <= 1300000) {
+        taxCredit = annualTax * 0.55;
+      } else {
+        taxCredit = 715000 + (annualTax - 1300000) * 0.30;
+      }
+      
+      // Max credit limits based on income
+      let maxCredit = 660000;
+      if (annualTaxable <= 33000000) maxCredit = 740000;
+      else if (annualTaxable > 70000000) maxCredit = 500000;
+
+      taxCredit = Math.min(maxCredit, taxCredit);
+      const netAnnualTax = Math.max(0, annualTax - taxCredit);
+      let incomeTax = Math.floor(netAnnualTax / 12 / 10) * 10;
+
+      // 6. Local Income Tax (10% of income tax)
+      const localTax = Math.floor(incomeTax * 0.1 / 10) * 10;
+
+      // Total Deductions
+      const totalDeductions = pension + health + care + employment + incomeTax + localTax;
+      
+      // Final Monthly Net Pay
+      const netPay = monthlySalary - totalDeductions;
+
+      // Output values
+      if (resNetPay) resNetPay.textContent = formatNumber(netPay);
+      if (resTotalDeductions) resTotalDeductions.textContent = formatNumber(totalDeductions);
+      if (resPension) resPension.textContent = formatNumber(pension);
+      if (resHealth) resHealth.textContent = formatNumber(health);
+      if (resCare) resCare.textContent = formatNumber(care);
+      if (resEmployment) resEmployment.textContent = formatNumber(employment);
+      if (resIncomeTax) resIncomeTax.textContent = formatNumber(incomeTax);
+      if (resLocalTax) resLocalTax.textContent = formatNumber(localTax);
+    };
+
+    const clear = () => {
+      salaryInput.value = '';
+      nonTaxableInput.value = '200000';
+      dependentsInput.value = '1';
+      childrenInput.value = '0';
+      
+      if (resNetPay) resNetPay.textContent = '0 원';
+      if (resTotalDeductions) resTotalDeductions.textContent = '0 원';
+      if (resPension) resPension.textContent = '0 원';
+      if (resHealth) resHealth.textContent = '0 원';
+      if (resCare) resCare.textContent = '0 원';
+      if (resEmployment) resEmployment.textContent = '0 원';
+      if (resIncomeTax) resIncomeTax.textContent = '0 원';
+      if (resLocalTax) resLocalTax.textContent = '0 원';
+    };
+
+    if (calcBtn) calcBtn.addEventListener('click', calculate);
+    if (clearBtn) clearBtn.addEventListener('click', clear);
+
+    // Press Enter to calculate
+    const inputs = [salaryInput, nonTaxableInput, dependentsInput, childrenInput];
+    inputs.forEach(input => {
+      if (input) {
+        input.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') {
+            calculate();
+          }
+        });
+      }
+    });
+  });
+</script>

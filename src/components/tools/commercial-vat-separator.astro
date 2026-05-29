@@ -1,0 +1,435 @@
+---
+import { getLangFromUrl } from '../../i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+
+const i18n = {
+  ko: {
+    title: '상업용 부동산 부가세 계산기',
+    totalPrice: '총 매매 / 임대 가액 (부가세 포함, 원)',
+    ratioSelect: '토지 및 건물 가액 안분 비율',
+    ratio6040: '토지 60% : 건물 40% (표준 비율)',
+    ratio5050: '토지 50% : 건물 50%',
+    ratio7030: '토지 70% : 건물 30%',
+    ratioCustom: '직접 입력',
+    landRatio: '토지 비율 (%)',
+    buildingRatio: '건물 비율 (%)',
+    calculate: '부가세 분리 계산',
+    clear: '초기화',
+    results: '부가세 안분 계산 결과',
+    landValue: '토지 가액 (면세)',
+    buildingValue: '건물 공급 가액 (과세)',
+    buildingVat: '건물분 부가가치세 (10%)',
+    buildingTotal: '건물분 가액 합계 (공급가+부가세)',
+    placeholderPrice: '부가세 포함 총 거래 금액 입력 (예: 550000000)',
+    ratioError: '❌ 오류: 토지 비율과 건물 비율의 합은 반드시 100%여야 합니다.',
+    disclaimer: '※ 상가, 사무실 등 상업용 부동산 매매 시 토지분은 면세이며 건물분만 10% 부가세가 과세됩니다. 본 계산기는 세법상 감정평가액 또는 기준시가 기준의 대략적인 안분 계산 결과만을 제공하므로, 계약서 작성 전 세무사의 확인을 거치시기 바랍니다.'
+  },
+  en: {
+    title: 'Commercial Property VAT Separator',
+    totalPrice: 'Total Price (VAT Included, KRW)',
+    ratioSelect: 'Land & Building Allocation Ratio',
+    ratio6040: 'Land 60% : Building 40% (Default)',
+    ratio5050: 'Land 50% : Building 50%',
+    ratio7030: 'Land 70% : Building 30%',
+    ratioCustom: 'Custom',
+    landRatio: 'Land Ratio (%)',
+    buildingRatio: 'Building Ratio (%)',
+    calculate: 'Calculate VAT Split',
+    clear: 'Clear',
+    results: 'VAT Allocation Results',
+    landValue: 'Land Portion (Exempt)',
+    buildingValue: 'Building Supply Value (Taxable)',
+    buildingVat: 'Building VAT (10%)',
+    buildingTotal: 'Total Building Value (Supply+VAT)',
+    placeholderPrice: 'Enter total price (e.g. 550000000)',
+    ratioError: 'Error: The sum of Land and Building ratios must equal 100%.',
+    disclaimer: '* For commercial real estate, land is exempt from VAT, while buildings are subject to 10% VAT. This calculator provides estimated splits. Verify contract terms with a tax advisor.'
+  }
+};
+
+const t = i18n[lang] || i18n['ko'];
+---
+
+<div class="tool-vat-separator">
+  <div class="calculator-container">
+    <div class="input-section">
+      <div class="input-group-wrapper">
+        <h3>{t.title}</h3>
+        
+        <div class="input-group">
+          <label for="total-price">{t.totalPrice}</label>
+          <input type="number" id="total-price" placeholder={t.placeholderPrice} min="0" step="10000000" />
+        </div>
+
+        <div class="input-group">
+          <label>{t.ratioSelect}</label>
+          <select id="ratio-preset">
+            <option value="6040" selected>{t.ratio6040}</option>
+            <option value="5050">{t.ratio5050}</option>
+            <option value="7030">{t.ratio7030}</option>
+            <option value="custom">{t.ratioCustom}</option>
+          </select>
+        </div>
+
+        <div class="input-group-row" id="custom-ratio-group" style="display: none; margin-top: 1rem;">
+          <div class="input-group half">
+            <label for="land-ratio">{t.landRatio}</label>
+            <input type="number" id="land-ratio" value="60" min="0" max="100" />
+          </div>
+          <div class="input-group half">
+            <label for="building-ratio">{t.buildingRatio}</label>
+            <input type="number" id="building-ratio" value="40" min="0" max="100" />
+          </div>
+        </div>
+
+        <div id="ratio-error" class="error-msg" style="display: none;">{t.ratioError}</div>
+      </div>
+
+      <div class="action-buttons">
+        <button id="calc-btn" class="btn-primary">{t.calculate}</button>
+        <button id="clear-btn" class="btn-secondary">{t.clear}</button>
+      </div>
+    </div>
+
+    <!-- 결과 영역 -->
+    <div class="result-section">
+      <h3>{t.results}</h3>
+      
+      <div class="result-box highlighted">
+        <span class="result-label">{t.buildingVat}</span>
+        <span class="result-value accent" id="res-building-vat">0 원</span>
+      </div>
+
+      <div class="tax-detail-list">
+        <div class="detail-item">
+          <span>{t.landValue}</span>
+          <span id="res-land-val">0 원</span>
+        </div>
+        <div class="detail-item">
+          <span>{t.buildingValue}</span>
+          <span id="res-building-val">0 원</span>
+        </div>
+        <div class="detail-item">
+          <span>{t.buildingTotal}</span>
+          <span id="res-building-total">0 원</span>
+        </div>
+      </div>
+
+      <p class="disclaimer-text">{t.disclaimer}</p>
+    </div>
+  </div>
+</div>
+
+<style>
+  .tool-vat-separator {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .calculator-container {
+    max-width: 600px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .input-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .input-group-wrapper {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+  }
+
+  h3 {
+    margin: 0 0 1.25rem 0;
+    font-size: 1.125rem;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.75rem;
+  }
+
+  .input-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1.25rem;
+  }
+
+  .input-group:last-child {
+    margin-bottom: 0;
+  }
+
+  .input-group-row {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .input-group.half {
+    flex: 1;
+    margin-bottom: 0;
+  }
+
+  label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+  }
+
+  input[type="number"], select {
+    width: 100%;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius);
+    font-size: 1rem;
+    transition: all 0.2s;
+  }
+
+  input[type="number"]:focus, select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+  }
+
+  .error-msg {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    border-radius: var(--radius);
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #fca5a5;
+    font-size: 0.8125rem;
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    padding: 0.875rem;
+    border-radius: var(--radius);
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.2s;
+    flex: 1;
+  }
+
+  .btn-primary:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    padding: 0.875rem;
+    border-radius: var(--radius);
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.2s;
+    flex: 1;
+  }
+
+  .btn-secondary:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+
+  .result-section {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .result-box {
+    background: var(--bg-hover);
+    padding: 1.25rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .result-box.highlighted {
+    background: rgba(0, 220, 130, 0.03);
+    border-color: rgba(0, 220, 130, 0.2);
+  }
+
+  .result-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+  }
+
+  .result-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    word-break: break-all;
+  }
+
+  .result-value.accent {
+    color: var(--accent);
+  }
+
+  .tax-detail-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+    border-top: 1px dashed var(--border);
+    border-bottom: 1px dashed var(--border);
+  }
+
+  .detail-item {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+  }
+
+  .detail-item span:last-child {
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+
+  .disclaimer-text {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin-top: 0.5rem;
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // Inputs
+    const priceInput = document.getElementById('total-price') as HTMLInputElement;
+    const presetSelect = document.getElementById('ratio-preset') as HTMLSelectElement;
+    const customRatioGroup = document.getElementById('custom-ratio-group');
+    const landRatioInput = document.getElementById('land-ratio') as HTMLInputElement;
+    const buildingRatioInput = document.getElementById('building-ratio') as HTMLInputElement;
+    const ratioError = document.getElementById('ratio-error');
+
+    // Outputs
+    const resBuildingVat = document.getElementById('res-building-vat');
+    const resLandVal = document.getElementById('res-land-val');
+    const resBuildingVal = document.getElementById('res-building-val');
+    const resBuildingTotal = document.getElementById('res-building-total');
+
+    // Buttons
+    const calcBtn = document.getElementById('calc-btn');
+    const clearBtn = document.getElementById('clear-btn');
+
+    const formatNumber = (num: number, unit = ' 원') => {
+      return new Intl.NumberFormat().format(Math.round(num)) + unit;
+    };
+
+    // Preset selector change
+    if (presetSelect && customRatioGroup) {
+      presetSelect.addEventListener('change', () => {
+        if (presetSelect.value === 'custom') {
+          customRatioGroup.style.display = 'flex';
+        } else {
+          customRatioGroup.style.display = 'none';
+          if (ratioError) ratioError.style.display = 'none';
+        }
+      });
+    }
+
+    const calculate = () => {
+      if (ratioError) ratioError.style.display = 'none';
+
+      const totalPrice = parseFloat(priceInput.value) || 0;
+      if (totalPrice <= 0) return;
+
+      let landRatio = 60;
+      let buildingRatio = 40;
+
+      const preset = presetSelect.value;
+      if (preset === '6040') {
+        landRatio = 60;
+        buildingRatio = 40;
+      } else if (preset === '5050') {
+        landRatio = 50;
+        buildingRatio = 50;
+      } else if (preset === '7030') {
+        landRatio = 70;
+        buildingRatio = 30;
+      } else if (preset === 'custom') {
+        landRatio = parseFloat(landRatioInput.value) || 0;
+        buildingRatio = parseFloat(buildingRatioInput.value) || 0;
+
+        if (landRatio + buildingRatio !== 100) {
+          if (ratioError) ratioError.style.display = 'block';
+          return;
+        }
+      }
+
+      // Calculation logic
+      // Total = Land + Building * 1.1
+      // Land = x * landRatio, Building = x * buildingRatio
+      // Total = x * (landRatio + buildingRatio * 1.1)
+      // x = Total / (landRatio + buildingRatio * 1.1)
+      const denominator = landRatio + (buildingRatio * 1.1);
+      const x = totalPrice / denominator;
+
+      const landValue = x * landRatio;
+      const buildingValue = x * buildingRatio;
+      const buildingVat = buildingValue * 0.1;
+      const buildingTotal = buildingValue + buildingVat;
+
+      // Output values
+      if (resBuildingVat) resBuildingVat.textContent = formatNumber(buildingVat);
+      if (resLandVal) resLandVal.textContent = formatNumber(landValue);
+      if (resBuildingVal) resBuildingVal.textContent = formatNumber(buildingValue);
+      if (resBuildingTotal) resBuildingTotal.textContent = formatNumber(buildingTotal);
+    };
+
+    const clear = () => {
+      priceInput.value = '';
+      presetSelect.value = '6040';
+      if (customRatioGroup) customRatioGroup.style.display = 'none';
+      if (ratioError) ratioError.style.display = 'none';
+      landRatioInput.value = '60';
+      buildingRatioInput.value = '40';
+
+      if (resBuildingVat) resBuildingVat.textContent = '0 원';
+      if (resLandVal) resLandVal.textContent = '0 원';
+      if (resBuildingVal) resBuildingVal.textContent = '0 원';
+      if (resBuildingTotal) resBuildingTotal.textContent = '0 원';
+    };
+
+    if (calcBtn) calcBtn.addEventListener('click', calculate);
+    if (clearBtn) clearBtn.addEventListener('click', clear);
+
+    // Enter key support
+    const inputs = [priceInput, landRatioInput, buildingRatioInput];
+    inputs.forEach(input => {
+      if (input) {
+        input.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') {
+            calculate();
+          }
+        });
+      }
+    });
+  });
+</script>

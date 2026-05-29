@@ -1,0 +1,601 @@
+---
+import { getLangFromUrl } from '../../i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+
+const i18n = {
+  ko: {
+    title: '부동산 취득세 계산기',
+    propertyPrice: '매매 가액 (원)',
+    areaSize: '전용 면적',
+    under85: '85㎡ 이하',
+    over85: '85㎡ 초과',
+    homeCount: '취득 후 주택 수',
+    oneHome: '일시적 1주택',
+    twoHome: '2주택',
+    threeHome: '3주택',
+    fourHome: '4주택 이상 / 법인',
+    regulated: '조정대상지역 여부',
+    regulatedYes: '조정대상지역',
+    regulatedNo: '비조정대상지역',
+    calculate: '계산하기',
+    clear: '초기화',
+    results: '예상 취득세 및 지방세',
+    totalTax: '총 납부 세액 합계',
+    acquisitionTax: '취득세',
+    educationTax: '지방교육세',
+    ruralTax: '농어촌특별세',
+    taxRateSummary: '적용 세율 요약',
+    placeholderPrice: '매매 금액 입력 (예: 500000000)',
+    disclaimer: '※ 본 계산기는 주택 매매 취득을 기준으로 설계된 간이 계산기입니다. 증여/상속 취득, 오피스텔/토지 등 주택 외 부동산 취득, 일시적 2주택 처분 기한 경과에 따른 가산세 등 세부 요건은 세무 전문가와 상담하시기 바랍니다.'
+  },
+  en: {
+    title: 'Real Estate Acquisition Tax Calculator',
+    propertyPrice: 'Purchase Price (KRW)',
+    areaSize: 'Exclusive Area',
+    under85: '85㎡ or Under',
+    over85: 'Over 85㎡',
+    homeCount: 'Total Homes Owned (After Purchase)',
+    oneHome: '1 Home',
+    twoHome: '2 Homes',
+    threeHome: '3 Homes',
+    fourHome: '4+ Homes / Corp',
+    regulated: 'Regulated Area',
+    regulatedYes: 'Regulated',
+    regulatedNo: 'Non-Regulated',
+    calculate: 'Calculate',
+    clear: 'Clear',
+    results: 'Estimated Taxes',
+    totalTax: 'Total Estimated Tax',
+    acquisitionTax: 'Acquisition Tax',
+    educationTax: 'Local Education Tax',
+    ruralTax: 'Rural Development Surtax',
+    taxRateSummary: 'Applied Tax Rates',
+    placeholderPrice: 'Enter purchase price (e.g. 500000000)',
+    disclaimer: '* This calculator estimates standard residential property acquisition taxes. Gift, inheritance, commercial buildings, or other special tax cases require professional tax consulting.'
+  }
+};
+
+const t = i18n[lang] || i18n['ko'];
+---
+
+<div class="tool-acquisition-tax">
+  <div class="calculator-grid">
+    <!-- 입력 영역 -->
+    <div class="input-section">
+      <div class="input-group-wrapper">
+        <h3>{t.title}</h3>
+        
+        <div class="input-group">
+          <label for="property-price">{t.propertyPrice}</label>
+          <input type="number" id="property-price" placeholder={t.placeholderPrice} min="0" step="10000000" />
+        </div>
+
+        <div class="input-group">
+          <label>{t.areaSize}</label>
+          <div class="toggle-buttons">
+            <button type="button" id="area-under" class="toggle-btn active">{t.under85}</button>
+            <button type="button" id="area-over" class="toggle-btn">{t.over85}</button>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label>{t.homeCount}</label>
+          <div class="home-selector">
+            <button type="button" id="home-1" class="home-btn active">{t.oneHome}</button>
+            <button type="button" id="home-2" class="home-btn">{t.twoHome}</button>
+            <button type="button" id="home-3" class="home-btn">{t.threeHome}</button>
+            <button type="button" id="home-4" class="home-btn">{t.fourHome}</button>
+          </div>
+        </div>
+
+        <div class="input-group" id="regulated-group" style="display: none;">
+          <label>{t.regulated}</label>
+          <div class="toggle-buttons">
+            <button type="button" id="regulated-no" class="toggle-btn active">{t.regulatedNo}</button>
+            <button type="button" id="regulated-yes" class="toggle-btn">{t.regulatedYes}</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="action-buttons">
+        <button id="calc-btn" class="btn-primary">{t.calculate}</button>
+        <button id="clear-btn" class="btn-secondary">{t.clear}</button>
+      </div>
+    </div>
+
+    <!-- 결과 영역 -->
+    <div class="result-section">
+      <h3>{t.results}</h3>
+      
+      <div class="result-box highlighted">
+        <span class="result-label">{t.totalTax}</span>
+        <span class="result-value accent" id="res-total-tax">0 원</span>
+      </div>
+
+      <div class="result-box">
+        <span class="result-label">{t.taxRateSummary}</span>
+        <span class="result-value" id="res-rate-summary" style="font-size: 1.25rem;">-</span>
+      </div>
+
+      <div class="tax-detail-list">
+        <div class="detail-item">
+          <span>{t.acquisitionTax}</span>
+          <span id="res-acq-tax">0 원</span>
+        </div>
+        <div class="detail-item">
+          <span>{t.educationTax}</span>
+          <span id="res-edu-tax">0 원</span>
+        </div>
+        <div class="detail-item">
+          <span>{t.ruralTax}</span>
+          <span id="res-rural-tax">0 원</span>
+        </div>
+      </div>
+
+      <p class="disclaimer-text">{t.disclaimer}</p>
+    </div>
+  </div>
+</div>
+
+<style>
+  .tool-acquisition-tax {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .calculator-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  @media (min-width: 768px) {
+    .calculator-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .input-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .input-group-wrapper {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+  }
+
+  h3 {
+    margin: 0 0 1.25rem 0;
+    font-size: 1.125rem;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.75rem;
+  }
+
+  .input-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1.25rem;
+  }
+
+  .input-group:last-child {
+    margin-bottom: 0;
+  }
+
+  label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+  }
+
+  input[type="number"] {
+    width: 100%;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius);
+    font-size: 1rem;
+    transition: all 0.2s;
+  }
+
+  input[type="number"]:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+  }
+
+  .toggle-buttons {
+    display: flex;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.25rem;
+  }
+
+  .toggle-btn {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    border-radius: calc(var(--radius) - 2px);
+    transition: all 0.2s;
+  }
+
+  .toggle-btn.active {
+    background: var(--accent);
+    color: #000;
+  }
+
+  .home-selector {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+
+  @media (min-width: 480px) {
+    .home-selector {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+
+  .home-btn {
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    padding: 0.625rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+  }
+
+  .home-btn:hover {
+    border-color: var(--border-hover);
+    color: var(--text-primary);
+  }
+
+  .home-btn.active {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    padding: 0.875rem;
+    border-radius: var(--radius);
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.2s;
+    flex: 1;
+  }
+
+  .btn-primary:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    padding: 0.875rem;
+    border-radius: var(--radius);
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.2s;
+    flex: 1;
+  }
+
+  .btn-secondary:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+
+  .result-section {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .result-box {
+    background: var(--bg-hover);
+    padding: 1.25rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .result-box.highlighted {
+    background: rgba(0, 220, 130, 0.03);
+    border-color: rgba(0, 220, 130, 0.2);
+  }
+
+  .result-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+  }
+
+  .result-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    word-break: break-all;
+  }
+
+  .result-value.accent {
+    color: var(--accent);
+  }
+
+  .tax-detail-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+    border-top: 1px dashed var(--border);
+    border-bottom: 1px dashed var(--border);
+  }
+
+  .detail-item {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+  }
+
+  .detail-item span:last-child {
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+
+  .disclaimer-text {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin-top: 0.5rem;
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // Inputs
+    const priceInput = document.getElementById('property-price') as HTMLInputElement;
+    
+    // Toggle values
+    let isOver85 = false;
+    let homeCount = 1; // 1, 2, 3, 4
+    let isRegulated = false;
+
+    // Dom elements
+    const areaUnder = document.getElementById('area-under');
+    const areaOver = document.getElementById('area-over');
+    
+    const home1 = document.getElementById('home-1');
+    const home2 = document.getElementById('home-2');
+    const home3 = document.getElementById('home-3');
+    const home4 = document.getElementById('home-4');
+    
+    const regulatedGroup = document.getElementById('regulated-group');
+    const regulatedYes = document.getElementById('regulated-yes');
+    const regulatedNo = document.getElementById('regulated-no');
+
+    // Outputs
+    const resTotalTax = document.getElementById('res-total-tax');
+    const resRateSummary = document.getElementById('res-rate-summary');
+    const resAcqTax = document.getElementById('res-acq-tax');
+    const resEduTax = document.getElementById('res-edu-tax');
+    const resRuralTax = document.getElementById('res-rural-tax');
+
+    // Buttons
+    const calcBtn = document.getElementById('calc-btn');
+    const clearBtn = document.getElementById('clear-btn');
+
+    const formatNumber = (num: number, unit = ' 원') => {
+      return new Intl.NumberFormat().format(Math.round(num)) + unit;
+    };
+
+    // Area listeners
+    if (areaUnder && areaOver) {
+      areaUnder.addEventListener('click', () => {
+        isOver85 = false;
+        areaUnder.classList.add('active');
+        areaOver.classList.remove('active');
+      });
+      areaOver.addEventListener('click', () => {
+        isOver85 = true;
+        areaOver.classList.add('active');
+        areaUnder.classList.remove('active');
+      });
+    }
+
+    // Home Count listeners
+    const resetHomeButtons = () => {
+      [home1, home2, home3, home4].forEach(btn => btn?.classList.remove('active'));
+    };
+
+    const updateRegulatedVisibility = () => {
+      if (regulatedGroup) {
+        if (homeCount === 2 || homeCount === 3) {
+          regulatedGroup.style.display = 'flex';
+        } else {
+          regulatedGroup.style.display = 'none';
+        }
+      }
+    };
+
+    home1?.addEventListener('click', () => {
+      resetHomeButtons();
+      homeCount = 1;
+      home1.classList.add('active');
+      updateRegulatedVisibility();
+    });
+
+    home2?.addEventListener('click', () => {
+      resetHomeButtons();
+      homeCount = 2;
+      home2.classList.add('active');
+      updateRegulatedVisibility();
+    });
+
+    home3?.addEventListener('click', () => {
+      resetHomeButtons();
+      homeCount = 3;
+      home3.classList.add('active');
+      updateRegulatedVisibility();
+    });
+
+    home4?.addEventListener('click', () => {
+      resetHomeButtons();
+      homeCount = 4;
+      home4.classList.add('active');
+      updateRegulatedVisibility();
+    });
+
+    // Regulated area listeners
+    if (regulatedNo && regulatedYes) {
+      regulatedNo.addEventListener('click', () => {
+        isRegulated = false;
+        regulatedNo.classList.add('active');
+        regulatedYes.classList.remove('active');
+      });
+      regulatedYes.addEventListener('click', () => {
+        isRegulated = true;
+        regulatedYes.classList.add('active');
+        regulatedNo.classList.remove('active');
+      });
+    }
+
+    const calculate = () => {
+      const price = parseFloat(priceInput.value) || 0;
+      if (price <= 0) return;
+
+      // 1. Determine Acquisition Tax Rate
+      let acqRate = 1.0;
+      
+      if (homeCount === 1) {
+        if (price <= 600000000) {
+          acqRate = 1.0;
+        } else if (price <= 900000000) {
+          // Linear interpolation: (Price * 2 / 3B) - 3
+          acqRate = (price * 2.0 / 300000000.0) - 3.0;
+        } else {
+          acqRate = 3.0;
+        }
+      } else if (homeCount === 2) {
+        if (isRegulated) {
+          acqRate = 8.0;
+        } else {
+          // Non-regulated 2-home is same as 1-home
+          if (price <= 600000000) {
+            acqRate = 1.0;
+          } else if (price <= 900000000) {
+            acqRate = (price * 2.0 / 300000000.0) - 3.0;
+          } else {
+            acqRate = 3.0;
+          }
+        }
+      } else if (homeCount === 3) {
+        acqRate = isRegulated ? 12.0 : 8.0;
+      } else if (homeCount === 4) {
+        acqRate = 12.0;
+      }
+
+      // Round rate to 2 decimal places
+      acqRate = Math.round(acqRate * 100) / 100;
+
+      // 2. Determine Local Education Tax Rate
+      let eduRate = acqRate * 0.1;
+      if (acqRate === 8.0 || acqRate === 12.0) {
+        eduRate = 0.4;
+      }
+      eduRate = Math.round(eduRate * 100) / 100;
+
+      // 3. Determine Rural Development Tax Rate
+      let ruralRate = 0.0;
+      if (isOver85) {
+        if (acqRate === 8.0) {
+          ruralRate = 0.6;
+        } else if (acqRate === 12.0) {
+          ruralRate = 1.0;
+        } else {
+          ruralRate = 0.2;
+        }
+      }
+
+      const acqTax = Math.floor(price * (acqRate / 100));
+      const eduTax = Math.floor(price * (eduRate / 100));
+      const ruralTax = Math.floor(price * (ruralRate / 100));
+      const totalTax = acqTax + eduTax + ruralTax;
+
+      // Output display
+      if (resTotalTax) resTotalTax.textContent = formatNumber(totalTax);
+      if (resAcqTax) resAcqTax.textContent = formatNumber(acqTax);
+      if (resEduTax) resEduTax.textContent = formatNumber(eduTax);
+      if (resRuralTax) resRuralTax.textContent = formatNumber(ruralTax);
+      
+      if (resRateSummary) {
+        const totalRate = Math.round((acqRate + eduRate + ruralRate) * 100) / 100;
+        resRateSummary.textContent = `${acqRate}% + ${eduRate}% + ${ruralRate}% = 총 ${totalRate}%`;
+      }
+    };
+
+    const clear = () => {
+      priceInput.value = '';
+      isOver85 = false;
+      homeCount = 1;
+      isRegulated = false;
+      
+      areaUnder?.classList.add('active');
+      areaOver?.classList.remove('active');
+      
+      resetHomeButtons();
+      home1?.classList.add('active');
+      updateRegulatedVisibility();
+      
+      regulatedNo?.classList.add('active');
+      regulatedYes?.classList.remove('active');
+
+      if (resTotalTax) resTotalTax.textContent = '0 원';
+      if (resRateSummary) resRateSummary.textContent = '-';
+      if (resAcqTax) resAcqTax.textContent = '0 원';
+      if (resEduTax) resEduTax.textContent = '0 원';
+      if (resRuralTax) resRuralTax.textContent = '0 원';
+    };
+
+    if (calcBtn) calcBtn.addEventListener('click', calculate);
+    if (clearBtn) clearBtn.addEventListener('click', clear);
+
+    // Enter key support
+    if (priceInput) {
+      priceInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          calculate();
+        }
+      });
+    }
+  });
+</script>

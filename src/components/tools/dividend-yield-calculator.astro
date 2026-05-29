@@ -1,0 +1,662 @@
+---
+import { getLangFromUrl } from '../../i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+
+const i18n = {
+  ko: {
+    title: '배당수익률 & 목표 매수가 계산기',
+    currentPrice: '현재 주가',
+    divFrequency: '배당 지급 주기',
+    divAmount: '지급 1회당 배당금',
+    shares: '보유 주식 수 (선택)',
+    targetYield: '목표 배당수익률 (%)',
+    taxRate: '배당소득세율 (%)',
+    taxPreset: '세율 프리셋',
+    presetDomestic: '국내 배당소득세 (15.4%)',
+    presetUS: '미국 배당소득세 (15.0%)',
+    presetPretax: '세전 기준 (0%)',
+    calculate: '계산하기',
+    clear: '초기화',
+    results: '배당 분석 및 목표가 계산 결과',
+    divYieldCard: '예상 배당수익률 (세전 / 세후)',
+    grossYield: '세전 배당수익률',
+    netYield: '세후 배당수익률',
+    annualDps: '연간 주당 배당금 (DPS)',
+    estimatedPayout: '예상 배당금 수령액 (보유주식 기준)',
+    grossAnnualPayout: '연간 세전 배당금',
+    netAnnualPayout: '연간 세후 배당금',
+    netMonthlyPayout: '월평균 세후 실수령액',
+    taxDeducted: '예상 배당소득세액',
+    targetPriceCard: '목표 배당수익률 달성을 위한 매수가',
+    targetPricePretax: '목표 매수가 (세전 기준)',
+    targetPricePosttax: '목표 매수가 (세후 기준)',
+    priceDiff: '현재가 대비 차이',
+    monthly: '매월 (Monthly)',
+    quarterly: '분기별 (Quarterly)',
+    semiannually: '반기별 (Semi-annually)',
+    annually: '연간 (Annually)',
+    placeholderPrice: '주가 입력 (예: 50000)',
+    placeholderDiv: '배당금 입력 (예: 500)',
+    placeholderShares: '수량 입력 (예: 100)',
+    placeholderTarget: '목표 수익률 입력 (예: 5.5)'
+  },
+  en: {
+    title: 'Dividend Yield & Target Price Calculator',
+    currentPrice: 'Current Stock Price',
+    divFrequency: 'Dividend Frequency',
+    divAmount: 'Dividend Amount per Period',
+    shares: 'Shares Owned (Optional)',
+    targetYield: 'Target Dividend Yield (%)',
+    taxRate: 'Dividend Tax Rate (%)',
+    taxPreset: 'Tax Rate Preset',
+    presetDomestic: 'Korea Dividend Tax (15.4%)',
+    presetUS: 'US Dividend Tax (15.0%)',
+    presetPretax: 'Pre-tax Basis (0%)',
+    calculate: 'Calculate',
+    clear: 'Clear',
+    results: 'Dividend Analysis & Target Price Results',
+    divYieldCard: 'Expected Dividend Yield (Gross / Net)',
+    grossYield: 'Gross Dividend Yield',
+    netYield: 'Net Dividend Yield',
+    annualDps: 'Annual DPS (Dividend Per Share)',
+    estimatedPayout: 'Estimated Dividend Payouts',
+    grossAnnualPayout: 'Gross Annual Payout',
+    netAnnualPayout: 'Net Annual Payout',
+    netMonthlyPayout: 'Net Monthly Average',
+    taxDeducted: 'Estimated Tax Deducted',
+    targetPriceCard: 'Target Price to Hit Desired Yield',
+    targetPricePretax: 'Target Price (Pre-tax Basis)',
+    targetPricePosttax: 'Target Price (Post-tax Basis)',
+    priceDiff: 'Diff from Current Price',
+    monthly: 'Monthly',
+    quarterly: 'Quarterly',
+    semiannually: 'Semi-annually',
+    annually: 'Annually',
+    placeholderPrice: 'Enter stock price (e.g. 50000)',
+    placeholderDiv: 'Enter dividend payout (e.g. 500)',
+    placeholderShares: 'Enter share count (e.g. 100)',
+    placeholderTarget: 'Enter target yield (e.g. 5.5)'
+  }
+};
+
+const t = i18n[lang] || i18n['ko'];
+---
+
+<div class="tool-dividend-yield">
+  <div class="calculator-grid">
+    <!-- 입력 영역 -->
+    <div class="input-section">
+      <div class="input-group-card">
+        <h3>{t.title}</h3>
+        
+        <div class="input-field">
+          <label for="current-price">{t.currentPrice}</label>
+          <input type="number" id="current-price" placeholder={t.placeholderPrice} min="0" step="any" />
+        </div>
+
+        <div class="input-row-group">
+          <div class="input-field">
+            <label for="div-frequency">{t.divFrequency}</label>
+            <select id="div-frequency">
+              <option value="12">{t.monthly}</option>
+              <option value="4" selected>{t.quarterly}</option>
+              <option value="2">{t.semiannually}</option>
+              <option value="1">{t.annually}</option>
+            </select>
+          </div>
+          
+          <div class="input-field">
+            <label for="div-amount">{t.divAmount}</label>
+            <input type="number" id="div-amount" placeholder={t.placeholderDiv} min="0" step="any" />
+          </div>
+        </div>
+
+        <div class="input-row-group">
+          <div class="input-field">
+            <label for="shares-owned">{t.shares}</label>
+            <input type="number" id="shares-owned" placeholder={t.placeholderShares} min="0" />
+          </div>
+          
+          <div class="input-field">
+            <label for="target-yield">{t.targetYield}</label>
+            <input type="number" id="target-yield" placeholder={t.placeholderTarget} min="0" step="any" />
+          </div>
+        </div>
+
+        <div class="input-field">
+          <label for="tax-preset">{t.taxPreset}</label>
+          <select id="tax-preset">
+            <option value="15.4" selected>{t.presetDomestic}</option>
+            <option value="15.0">{t.presetUS}</option>
+            <option value="0">{t.presetPretax}</option>
+            <option value="custom">직접 입력 (Custom)</option>
+          </select>
+        </div>
+
+        <div class="input-field" id="custom-tax-input" style="display: none;">
+          <label for="tax-rate">{t.taxRate}</label>
+          <input type="number" id="tax-rate" value="15.4" step="0.1" min="0" max="100" />
+        </div>
+      </div>
+
+      <div class="action-buttons">
+        <button id="calc-btn" class="btn-primary">{t.calculate}</button>
+        <button id="clear-btn" class="btn-secondary">{t.clear}</button>
+      </div>
+    </div>
+
+    <!-- 결과 영역 -->
+    <div class="result-section">
+      <h3>{t.results}</h3>
+      
+      <!-- 1. 예상 배당수익률 카드 -->
+      <div class="result-highlight-card">
+        <span class="highlight-label">{t.divYieldCard}</span>
+        <div class="yield-display">
+          <div class="yield-box">
+            <span class="yield-lbl">{t.grossYield}</span>
+            <span class="yield-val text-primary" id="res-gross-yield">0.00%</span>
+          </div>
+          <div class="yield-divider"></div>
+          <div class="yield-box">
+            <span class="yield-lbl">{t.netYield}</span>
+            <span class="yield-val text-accent" id="res-net-yield">0.00%</span>
+          </div>
+        </div>
+        <span class="highlight-sub" id="res-annual-dps">연간 DPS: 0 원</span>
+      </div>
+
+      <!-- 2. 목표 매수가 카드 -->
+      <div class="result-box-card">
+        <span class="card-label-title">{t.targetPriceCard}</span>
+        
+        <div class="target-price-group">
+          <div class="target-price-item">
+            <span class="tp-label">{t.targetPricePretax}</span>
+            <span class="tp-value" id="res-tp-pretax">0 원</span>
+            <span class="tp-diff" id="res-tp-pretax-diff">-</span>
+          </div>
+          
+          <div class="target-price-divider"></div>
+          
+          <div class="target-price-item">
+            <span class="tp-label">{t.targetPricePosttax}</span>
+            <span class="tp-value" id="res-tp-posttax">0 원</span>
+            <span class="tp-diff" id="res-tp-posttax-diff">-</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. 보유 주식 기준 수령액 계산 (보유주식 입력 시에만 활성화 느낌) -->
+      <div class="details-table-card" id="payout-details-card" style="display: none;">
+        <span class="card-label-title" style="margin-bottom: 0.5rem; display: block; font-size: 0.8125rem; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.05em;">{t.estimatedPayout}</span>
+        <div class="details-row">
+          <span>{t.grossAnnualPayout}</span>
+          <span id="res-gross-payout" class="bold-text">0 원</span>
+        </div>
+        <div class="details-row text-muted">
+          <span>{t.taxDeducted}</span>
+          <span id="res-tax-deducted">0 원</span>
+        </div>
+        <div class="details-row divider"></div>
+        <div class="details-row text-accent">
+          <span>{t.netAnnualPayout}</span>
+          <span id="res-net-payout" class="bold-text">0 원</span>
+        </div>
+        <div class="details-row text-accent">
+          <span>{t.netMonthlyPayout}</span>
+          <span id="res-net-monthly-payout" class="bold-text">0 원</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .tool-dividend-yield {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .calculator-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  @media (min-width: 768px) {
+    .calculator-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .input-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .input-group-card {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  h3 {
+    margin: 0 0 0.25rem 0;
+    font-size: 1.125rem;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.75rem;
+  }
+
+  .input-row-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .input-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+  }
+
+  .input-field label {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+
+  input, select {
+    width: 100%;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 0.625rem 0.875rem;
+    border-radius: var(--radius);
+    font-size: 0.9375rem;
+    transition: all 0.2s;
+  }
+
+  input:focus, select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    padding: 0.875rem;
+    border-radius: var(--radius);
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.2s;
+    flex: 1;
+    cursor: pointer;
+  }
+
+  .btn-primary:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    padding: 0.875rem;
+    border-radius: var(--radius);
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.2s;
+    flex: 1;
+    cursor: pointer;
+  }
+
+  .btn-secondary:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+
+  .result-section {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .result-highlight-card {
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .highlight-label {
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .yield-display {
+    display: flex;
+    width: 100%;
+    justify-content: space-around;
+    align-items: center;
+    margin: 0.25rem 0;
+  }
+
+  .yield-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .yield-lbl {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+  }
+
+  .yield-val {
+    font-size: 1.75rem;
+    font-weight: 800;
+  }
+
+  .text-accent {
+    color: var(--accent);
+  }
+
+  .text-primary {
+    color: var(--text-primary);
+  }
+
+  .yield-divider {
+    width: 1px;
+    height: 40px;
+    background-color: var(--border);
+  }
+
+  .highlight-sub {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  .result-box-card {
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    padding: 1.25rem;
+    border-radius: var(--radius);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .card-label-title {
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+  }
+
+  .target-price-group {
+    display: flex;
+    justify-content: space-around;
+    align-items: stretch;
+    gap: 1rem;
+    margin-top: 0.25rem;
+  }
+
+  .target-price-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.25rem;
+  }
+
+  .tp-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+  }
+
+  .tp-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .tp-diff {
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .target-price-divider {
+    width: 1px;
+    background-color: var(--border);
+  }
+
+  .details-table-card {
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    padding: 1.25rem;
+    border-radius: var(--radius);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .details-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.875rem;
+  }
+
+  .details-row.divider {
+    border-bottom: 1px dashed var(--border);
+    margin: 0.25rem 0;
+    height: 0;
+  }
+
+  .bold-text {
+    font-weight: 700;
+  }
+
+  .text-accent {
+    color: var(--accent);
+  }
+
+  .text-muted {
+    color: var(--text-secondary);
+  }
+
+  .diff-down {
+    color: #ef4444;
+  }
+
+  .diff-up {
+    color: var(--accent);
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const currentPriceInput = document.getElementById('current-price') as HTMLInputElement;
+    const divFrequencySelect = document.getElementById('div-frequency') as HTMLSelectElement;
+    const divAmountInput = document.getElementById('div-amount') as HTMLInputElement;
+    const sharesOwnedInput = document.getElementById('shares-owned') as HTMLInputElement;
+    const targetYieldInput = document.getElementById('target-yield') as HTMLInputElement;
+    const taxPresetSelect = document.getElementById('tax-preset') as HTMLSelectElement;
+    const customTaxInputDiv = document.getElementById('custom-tax-input') as HTMLDivElement;
+    const taxRateInput = document.getElementById('tax-rate') as HTMLInputElement;
+    
+    const calcBtn = document.getElementById('calc-btn');
+    const clearBtn = document.getElementById('clear-btn');
+
+    // Outputs
+    const resGrossYield = document.getElementById('res-gross-yield');
+    const resNetYield = document.getElementById('res-net-yield');
+    const resAnnualDps = document.getElementById('res-annual-dps');
+    const resTpPretax = document.getElementById('res-tp-pretax');
+    const resTpPretaxDiff = document.getElementById('res-tp-pretax-diff');
+    const resTpPosttax = document.getElementById('res-tp-posttax');
+    const resTpPosttaxDiff = document.getElementById('res-tp-posttax-diff');
+    
+    // Details Payout Card
+    const payoutCard = document.getElementById('payout-details-card');
+    const resGrossPayout = document.getElementById('res-gross-payout');
+    const resTaxDeducted = document.getElementById('res-tax-deducted');
+    const resNetPayout = document.getElementById('res-net-payout');
+    const resNetMonthlyPayout = document.getElementById('res-net-monthly-payout');
+
+    const formatNumber = (num: number, unit = '', fractionDigits = 0) => {
+      return new Intl.NumberFormat(undefined, { maximumFractionDigits: fractionDigits }).format(num) + unit;
+    };
+
+    taxPresetSelect?.addEventListener('change', () => {
+      if (!taxPresetSelect || !customTaxInputDiv || !taxRateInput) return;
+      const val = taxPresetSelect.value;
+      if (val === 'custom') {
+        customTaxInputDiv.style.display = 'block';
+      } else {
+        customTaxInputDiv.style.display = 'none';
+        taxRateInput.value = val;
+      }
+    });
+
+    const calculate = () => {
+      if (!currentPriceInput || !divFrequencySelect || !divAmountInput || !sharesOwnedInput || !targetYieldInput || !taxRateInput) return;
+      
+      const currentPrice = parseFloat(currentPriceInput.value) || 0;
+      const freq = parseInt(divFrequencySelect.value) || 4;
+      const amount = parseFloat(divAmountInput.value) || 0;
+      const shares = parseFloat(sharesOwnedInput.value) || 0;
+      const targetYield = parseFloat(targetYieldInput.value) || 0;
+      
+      const taxRate = parseFloat(taxRateInput.value) || 0;
+
+      // 1. 연간 DPS 계산
+      const annualDps = amount * freq;
+
+      // 2. 배당수익률 계산
+      const grossYield = currentPrice > 0 ? (annualDps / currentPrice) * 100 : 0;
+      const netDps = annualDps * (1 - taxRate / 100);
+      const netYield = currentPrice > 0 ? (netDps / currentPrice) * 100 : 0;
+
+      // 3. 목표 매수가 계산
+      const targetPretaxPrice = targetYield > 0 ? (annualDps / (targetYield / 100)) : 0;
+      const targetPosttaxPrice = targetYield > 0 ? (netDps / (targetYield / 100)) : 0;
+
+      // 다국어 통화 설정
+      const isKo = document.documentElement.lang === 'ko';
+      const unit = isKo ? ' 원' : ' KRW';
+
+      // 결과 세팅
+      if (resGrossYield) resGrossYield.textContent = `${grossYield.toFixed(2)}%`;
+      if (resNetYield) resNetYield.textContent = `${netYield.toFixed(2)}%`;
+      if (resAnnualDps) resAnnualDps.textContent = `${isKo ? '연간 DPS (주당배당금): ' : 'Annual DPS: '}${formatNumber(annualDps, unit)}`;
+
+      if (resTpPretax) resTpPretax.textContent = targetPretaxPrice > 0 ? formatNumber(targetPretaxPrice, unit) : '-';
+      if (resTpPosttax) resTpPosttax.textContent = targetPosttaxPrice > 0 ? formatNumber(targetPosttaxPrice, unit) : '-';
+
+      // 차이 계산 함수
+      const displayDiff = (targetPrice: number, element: HTMLElement | null) => {
+        if (!element) return;
+        if (targetPrice <= 0 || currentPrice <= 0) {
+          element.textContent = '-';
+          element.className = 'tp-diff';
+          return;
+        }
+
+        const diff = targetPrice - currentPrice;
+        const diffPercent = (diff / currentPrice) * 100;
+        
+        const sign = diff > 0 ? '+' : '';
+        element.textContent = `${sign}${formatNumber(diff, unit)} (${sign}${diffPercent.toFixed(2)}%)`;
+        
+        if (diff > 0) {
+          element.className = 'tp-diff diff-up';
+        } else if (diff < 0) {
+          element.className = 'tp-diff diff-down';
+        } else {
+          element.className = 'tp-diff';
+        }
+      };
+
+      displayDiff(targetPretaxPrice, resTpPretaxDiff);
+      displayDiff(targetPosttaxPrice, resTpPosttaxDiff);
+
+      // 4. 보유주식 기반 예상 배당금 계산
+      if (shares > 0 && payoutCard) {
+        payoutCard.style.display = 'flex';
+        
+        const grossAnnual = annualDps * shares;
+        const netAnnual = netDps * shares;
+        const taxDeducted = grossAnnual - netAnnual;
+        const netMonthly = netAnnual / 12;
+
+        if (resGrossPayout) resGrossPayout.textContent = formatNumber(grossAnnual, unit);
+        if (resTaxDeducted) resTaxDeducted.textContent = formatNumber(taxDeducted, unit);
+        if (resNetPayout) resNetPayout.textContent = formatNumber(netAnnual, unit);
+        if (resNetMonthlyPayout) resNetMonthlyPayout.textContent = formatNumber(netMonthly, unit);
+      } else if (payoutCard) {
+        payoutCard.style.display = 'none';
+      }
+    };
+
+    const clear = () => {
+      if (!currentPriceInput || !divFrequencySelect || !divAmountInput || !sharesOwnedInput || !targetYieldInput || !taxPresetSelect) return;
+      currentPriceInput.value = '';
+      divFrequencySelect.value = '4';
+      divAmountInput.value = '';
+      sharesOwnedInput.value = '';
+      targetYieldInput.value = '';
+      taxPresetSelect.value = '15.4';
+      taxPresetSelect.dispatchEvent(new Event('change'));
+      
+      if (resGrossYield) resGrossYield.textContent = '0.00%';
+      if (resNetYield) resNetYield.textContent = '0.00%';
+      if (resAnnualDps) resAnnualDps.textContent = '연간 DPS: 0 원';
+      if (resTpPretax) resTpPretax.textContent = '0 원';
+      if (resTpPretaxDiff) {
+        resTpPretaxDiff.textContent = '-';
+        resTpPretaxDiff.className = 'tp-diff';
+      }
+      if (resTpPosttax) resTpPosttax.textContent = '0 원';
+      if (resTpPosttaxDiff) {
+        resTpPosttaxDiff.textContent = '-';
+        resTpPosttaxDiff.className = 'tp-diff';
+      }
+
+      if (payoutCard) payoutCard.style.display = 'none';
+    };
+
+    if (calcBtn) calcBtn.addEventListener('click', calculate);
+    if (clearBtn) clearBtn.addEventListener('click', clear);
+  });
+</script>

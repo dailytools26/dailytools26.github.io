@@ -1,0 +1,640 @@
+---
+import { getLangFromUrl } from '../../i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+
+const i18n = {
+  ko: {
+    title: '국내주식 세금 및 수수료 계산기',
+    buyPrice: '매수 단가 (원)',
+    quantity: '매수 수량 (주)',
+    sellPrice: '매도 단가 (원)',
+    marketType: '시장 구분',
+    taxYear: '세율 기준 연도',
+    buyFee: '매수 수수료율 (%)',
+    sellFee: '매도 수수료율 (%)',
+    feePreset: '수수료율 프리셋',
+    presetMobile: '모바일 앱 보통 (0.015%)',
+    presetFree: '수수료 우대/유관기관 (0.0036396%)',
+    presetHTS: 'HTS 보통 (0.01%)',
+    presetOffline: '오프라인/지점 (0.50%)',
+    calculate: '계산하기',
+    clear: '초기화',
+    results: '상세 거래 손익 결과',
+    totalBuy: '총 매입 금액',
+    totalSell: '총 매도 금액',
+    buyFeeAmt: '매수 증권사 수수료',
+    sellFeeAmt: '매도 증권사 수수료',
+    taxAmt: '증권거래세',
+    netProfit: '최종 순손익',
+    netYield: '최종 순수익률',
+    grossProfit: '단순 매매 손익',
+    totalCosts: '총 거래 비용 (세금+수수료)',
+    netBuyCost: '수수료 포함 매수 금액',
+    netSellReceive: '세금/수수료 공제 매도 금액',
+    kospi: 'KOSPI (코스피)',
+    kosdaq: 'KOSDAQ (코스닥)',
+    konex: 'KONEX (코넥스)',
+    placeholderBuyPrice: '매수가 입력 (예: 70000)',
+    placeholderQty: '수량 입력 (예: 50)',
+    placeholderSellPrice: '매도가 입력 (예: 75000)'
+  },
+  en: {
+    title: 'Domestic Stock Tax & Fee Calculator',
+    buyPrice: 'Buy Price (KRW)',
+    quantity: 'Quantity (Shares)',
+    sellPrice: 'Sell Price (KRW)',
+    marketType: 'Market Type',
+    taxYear: 'Tax Rate Year',
+    buyFee: 'Buy Commission (%)',
+    sellFee: 'Sell Commission (%)',
+    feePreset: 'Commission Preset',
+    presetMobile: 'Typical Mobile (0.015%)',
+    presetFree: 'Fee Waiver / Institution (0.0036396%)',
+    presetHTS: 'HTS Typical (0.01%)',
+    presetOffline: 'Offline/Branch (0.50%)',
+    calculate: 'Calculate',
+    clear: 'Clear',
+    results: 'Transaction Profit/Loss Summary',
+    totalBuy: 'Total Purchase Amount',
+    totalSell: 'Total Sell Amount',
+    buyFeeAmt: 'Buy Brokerage Commission',
+    sellFeeAmt: 'Sell Brokerage Commission',
+    taxAmt: 'Securities Transaction Tax',
+    netProfit: 'Net Profit/Loss',
+    netYield: 'Net Rate of Return (ROI)',
+    grossProfit: 'Gross Profit/Loss',
+    totalCosts: 'Total Transaction Costs',
+    netBuyCost: 'Total Cost to Buy',
+    netSellReceive: 'Net Cash Received',
+    kospi: 'KOSPI',
+    kosdaq: 'KOSDAQ',
+    konex: 'KONEX',
+    placeholderBuyPrice: 'Enter buy price (e.g. 70000)',
+    placeholderQty: 'Enter quantity (e.g. 50)',
+    placeholderSellPrice: 'Enter sell price (e.g. 75000)'
+  }
+};
+
+const t = i18n[lang] || i18n['ko'];
+---
+
+<div class="tool-domestic-stock-tax">
+  <div class="calculator-grid">
+    <!-- 입력 영역 -->
+    <div class="input-section">
+      <div class="input-group-card">
+        <h3>{t.title}</h3>
+        
+        <div class="input-row-group">
+          <div class="input-field">
+            <label for="buy-price">{t.buyPrice}</label>
+            <input type="number" id="buy-price" placeholder={t.placeholderBuyPrice} min="0" />
+          </div>
+          
+          <div class="input-field">
+            <label for="quantity">{t.quantity}</label>
+            <input type="number" id="quantity" placeholder={t.placeholderQty} min="0" />
+          </div>
+        </div>
+
+        <div class="input-field">
+          <label for="sell-price">{t.sellPrice}</label>
+          <input type="number" id="sell-price" placeholder={t.placeholderSellPrice} min="0" />
+        </div>
+
+        <div class="input-row-group">
+          <div class="input-field">
+            <label for="market-type">{t.marketType}</label>
+            <select id="market-type">
+              <option value="kospi">{t.kospi}</option>
+              <option value="kosdaq" selected>{t.kosdaq}</option>
+              <option value="konex">{t.konex}</option>
+            </select>
+          </div>
+
+          <div class="input-field">
+            <label for="tax-year">{t.taxYear}</label>
+            <select id="tax-year">
+              <option value="2026" selected>2026년 이후 (0.20%)</option>
+              <option value="2025">2025년 기준 (0.15%)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="input-field">
+          <label for="fee-preset">{t.feePreset}</label>
+          <select id="fee-preset">
+            <option value="0.015" selected>{t.presetMobile}</option>
+            <option value="0.0036396">{t.presetFree}</option>
+            <option value="0.01">{t.presetHTS}</option>
+            <option value="0.5">{t.presetOffline}</option>
+            <option value="custom">직접 입력 (Custom)</option>
+          </select>
+        </div>
+
+        <div class="input-row-group" id="custom-fee-inputs" style="display: none;">
+          <div class="input-field">
+            <label for="buy-fee">{t.buyFee}</label>
+            <input type="number" id="buy-fee" value="0.015" step="0.0001" min="0" />
+          </div>
+          
+          <div class="input-field">
+            <label for="sell-fee">{t.sellFee}</label>
+            <input type="number" id="sell-fee" value="0.015" step="0.0001" min="0" />
+          </div>
+        </div>
+      </div>
+
+      <div class="action-buttons">
+        <button id="calc-btn" class="btn-primary">{t.calculate}</button>
+        <button id="clear-btn" class="btn-secondary">{t.clear}</button>
+      </div>
+    </div>
+
+    <!-- 결과 영역 -->
+    <div class="result-section">
+      <h3>{t.results}</h3>
+      
+      <div class="result-highlight-card" id="result-status-card">
+        <span class="highlight-label">{t.netProfit}</span>
+        <span class="highlight-value" id="res-net-profit">0 원</span>
+        <span class="highlight-sub" id="res-net-yield">수익률: 0.00%</span>
+      </div>
+
+      <div class="results-sub-grid">
+        <div class="result-mini-card">
+          <span class="mini-label">{t.totalBuy}</span>
+          <span class="mini-value" id="res-total-buy">0 원</span>
+          <span class="mini-desc" id="res-net-buy-cost">+수수료: 0 원</span>
+        </div>
+
+        <div class="result-mini-card">
+          <span class="mini-label">{t.totalSell}</span>
+          <span class="mini-value" id="res-total-sell">0 원</span>
+          <span class="mini-desc" id="res-net-sell-receive">-세금/수수료: 0 원</span>
+        </div>
+      </div>
+
+      <div class="details-table-card">
+        <div class="details-row">
+          <span>{t.grossProfit}</span>
+          <span id="res-gross-profit" class="bold-text">0 원</span>
+        </div>
+        <div class="details-row divider"></div>
+        <div class="details-row text-muted">
+          <span>{t.buyFeeAmt}</span>
+          <span id="res-buy-fee-amt">0 원</span>
+        </div>
+        <div class="details-row text-muted">
+          <span>{t.sellFeeAmt}</span>
+          <span id="res-sell-fee-amt">0 원</span>
+        </div>
+        <div class="details-row text-muted">
+          <span>{t.taxAmt}</span>
+          <span id="res-tax-amt">0 원</span>
+        </div>
+        <div class="details-row divider"></div>
+        <div class="details-row accent-row">
+          <span>{t.totalCosts}</span>
+          <span id="res-total-costs" class="bold-text">0 원</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .tool-domestic-stock-tax {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .calculator-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  @media (min-width: 768px) {
+    .calculator-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .input-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .input-group-card {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  h3 {
+    margin: 0 0 0.25rem 0;
+    font-size: 1.125rem;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.75rem;
+  }
+
+  .input-row-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .input-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+  }
+
+  .input-field label {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+
+  input, select {
+    width: 100%;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 0.625rem 0.875rem;
+    border-radius: var(--radius);
+    font-size: 0.9375rem;
+    transition: all 0.2s;
+  }
+
+  input:focus, select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    padding: 0.875rem;
+    border-radius: var(--radius);
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.2s;
+    flex: 1;
+    cursor: pointer;
+  }
+
+  .btn-primary:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    padding: 0.875rem;
+    border-radius: var(--radius);
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.2s;
+    flex: 1;
+    cursor: pointer;
+  }
+
+  .btn-secondary:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+
+  .result-section {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .result-highlight-card {
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+  }
+
+  .result-highlight-card.profit {
+    background: rgba(0, 220, 130, 0.04);
+    border-color: rgba(0, 220, 130, 0.2);
+  }
+
+  .result-highlight-card.loss {
+    background: rgba(239, 68, 68, 0.04);
+    border-color: rgba(239, 68, 68, 0.2);
+  }
+
+  .highlight-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .highlight-value {
+    font-size: 2.25rem;
+    font-weight: 800;
+    word-break: break-all;
+  }
+
+  .highlight-sub {
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  .profit-text {
+    color: var(--accent) !important;
+  }
+
+  .loss-text {
+    color: #ef4444 !important;
+  }
+
+  .results-sub-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .result-mini-card {
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    padding: 1rem;
+    border-radius: var(--radius);
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .mini-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+  }
+
+  .mini-value {
+    font-size: 1.125rem;
+    font-weight: 700;
+  }
+
+  .mini-desc {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+
+  .details-table-card {
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    padding: 1.25rem;
+    border-radius: var(--radius);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .details-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.875rem;
+  }
+
+  .details-row.divider {
+    border-bottom: 1px dashed var(--border);
+    margin: 0.25rem 0;
+    height: 0;
+  }
+
+  .bold-text {
+    font-weight: 700;
+  }
+
+  .accent-row {
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .text-muted {
+    color: var(--text-secondary);
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const buyPriceInput = document.getElementById('buy-price') as HTMLInputElement;
+    const qtyInput = document.getElementById('quantity') as HTMLInputElement;
+    const sellPriceInput = document.getElementById('sell-price') as HTMLInputElement;
+    const marketTypeSelect = document.getElementById('market-type') as HTMLSelectElement;
+    const taxYearSelect = document.getElementById('tax-year') as HTMLSelectElement;
+    const feePresetSelect = document.getElementById('fee-preset') as HTMLSelectElement;
+    const customFeeInputs = document.getElementById('custom-fee-inputs') as HTMLDivElement;
+    const buyFeeInput = document.getElementById('buy-fee') as HTMLInputElement;
+    const sellFeeInput = document.getElementById('sell-fee') as HTMLInputElement;
+    
+    const calcBtn = document.getElementById('calc-btn');
+    const clearBtn = document.getElementById('clear-btn');
+
+    // Outputs
+    const resNetProfit = document.getElementById('res-net-profit');
+    const resNetYield = document.getElementById('res-net-yield');
+    const resTotalBuy = document.getElementById('res-total-buy');
+    const resNetBuyCost = document.getElementById('res-net-buy-cost');
+    const resTotalSell = document.getElementById('res-total-sell');
+    const resNetSellReceive = document.getElementById('res-net-sell-receive');
+    const resGrossProfit = document.getElementById('res-gross-profit');
+    const resBuyFeeAmt = document.getElementById('res-buy-fee-amt');
+    const resSellFeeAmt = document.getElementById('res-sell-fee-amt');
+    const resTaxAmt = document.getElementById('res-tax-amt');
+    const resTotalCosts = document.getElementById('res-total-costs');
+    const statusCard = document.getElementById('result-status-card');
+
+    const formatNumber = (num: number, unit = '') => {
+      return new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(num) + unit;
+    };
+
+    // Toggle custom fee input fields
+    feePresetSelect?.addEventListener('change', () => {
+      if (!feePresetSelect || !customFeeInputs || !buyFeeInput || !sellFeeInput) return;
+      const val = feePresetSelect.value;
+      if (val === 'custom') {
+        customFeeInputs.style.display = 'grid';
+      } else {
+        customFeeInputs.style.display = 'none';
+        const feeVal = parseFloat(val) || 0;
+        buyFeeInput.value = feeVal.toString();
+        sellFeeInput.value = feeVal.toString();
+      }
+    });
+
+    const calculate = () => {
+      if (!buyPriceInput || !qtyInput || !sellPriceInput || !marketTypeSelect || !taxYearSelect || !feePresetSelect || !buyFeeInput || !sellFeeInput) return;
+      
+      const buyPrice = parseFloat(buyPriceInput.value) || 0;
+      const qty = parseFloat(qtyInput.value) || 0;
+      const sellPrice = parseFloat(sellPriceInput.value) || 0;
+      const market = marketTypeSelect.value;
+      const year = taxYearSelect.value;
+      
+      let buyFeeRate = 0.015;
+      let sellFeeRate = 0.015;
+      
+      if (feePresetSelect.value === 'custom') {
+        buyFeeRate = parseFloat(buyFeeInput.value) || 0;
+        sellFeeRate = parseFloat(sellFeeInput.value) || 0;
+      } else {
+        const rate = parseFloat(feePresetSelect.value) || 0;
+        buyFeeRate = rate;
+        sellFeeRate = rate;
+      }
+
+      // 1. 매수 시 계산
+      const totalBuyRaw = buyPrice * qty;
+      const buyFeeAmt = Math.floor(totalBuyRaw * (buyFeeRate / 100));
+      const totalBuyOutflow = totalBuyRaw + buyFeeAmt;
+
+      // 2. 매도 시 계산
+      const totalSellRaw = sellPrice * qty;
+      const sellFeeAmt = Math.floor(totalSellRaw * (sellFeeRate / 100));
+
+      // 3. 증권거래세 요율 설정
+      // 2026년 이후: 코스피 0.20%, 코스닥 0.20%, 코넥스 0.10%
+      // 2025년 기준: 코스피 0.15%, 코스닥 0.15%, 코넥스 0.10%
+      let taxRate = 0.002; // 기본 2026 코스닥 0.20%
+      if (year === '2026') {
+        if (market === 'kospi') taxRate = 0.0020;
+        else if (market === 'kosdaq') taxRate = 0.0020;
+        else if (market === 'konex') taxRate = 0.0010;
+      } else { // 2025년
+        if (market === 'kospi') taxRate = 0.0015;
+        else if (market === 'kosdaq') taxRate = 0.0015;
+        else if (market === 'konex') taxRate = 0.0010;
+      }
+
+      const taxAmt = Math.floor(totalSellRaw * taxRate);
+      const totalSellInflow = totalSellRaw - sellFeeAmt - taxAmt;
+
+      // 4. 순손익 및 수익률
+      const grossProfit = totalSellRaw - totalBuyRaw;
+      const netProfit = totalSellInflow - totalBuyOutflow;
+      const totalCosts = buyFeeAmt + sellFeeAmt + taxAmt;
+      const netYield = totalBuyOutflow > 0 ? (netProfit / totalBuyOutflow) * 100 : 0;
+
+      // 다국어 체크
+      const isKo = document.documentElement.lang === 'ko';
+      const unit = isKo ? ' 원' : ' KRW';
+
+      // 5. DOM 출력
+      if (resTotalBuy) resTotalBuy.textContent = formatNumber(totalBuyRaw, unit);
+      if (resNetBuyCost) resNetBuyCost.textContent = `${isKo ? '+수수료 포함: ' : '+Incl. Fees: '}${formatNumber(totalBuyOutflow, unit)}`;
+      if (resTotalSell) resTotalSell.textContent = formatNumber(totalSellRaw, unit);
+      if (resNetSellReceive) resNetSellReceive.textContent = `${isKo ? '-세금/수수료 제하고: ' : '-Excl. Taxes: '}${formatNumber(totalSellInflow, unit)}`;
+      
+      if (resGrossProfit) {
+        resGrossProfit.textContent = formatNumber(grossProfit, unit);
+        resGrossProfit.className = grossProfit > 0 ? 'bold-text profit-text' : (grossProfit < 0 ? 'bold-text loss-text' : 'bold-text');
+      }
+      
+      if (resBuyFeeAmt) resBuyFeeAmt.textContent = formatNumber(buyFeeAmt, unit);
+      if (resSellFeeAmt) resSellFeeAmt.textContent = formatNumber(sellFeeAmt, unit);
+      if (resTaxAmt) resTaxAmt.textContent = formatNumber(taxAmt, unit);
+      if (resTotalCosts) resTotalCosts.textContent = formatNumber(totalCosts, unit);
+
+      if (resNetProfit) {
+        resNetProfit.textContent = (netProfit > 0 ? '+' : '') + formatNumber(netProfit, unit);
+      }
+      if (resNetYield) {
+        resNetYield.textContent = `${isKo ? '순수익률: ' : 'Net ROI: '}${netYield.toFixed(2)}%`;
+      }
+
+      // UI Status Highlight
+      if (statusCard && resNetProfit && resNetYield) {
+        statusCard.className = 'result-highlight-card';
+        resNetProfit.className = 'highlight-value';
+        resNetYield.className = 'highlight-sub';
+
+        if (netProfit > 0) {
+          statusCard.classList.add('profit');
+          resNetProfit.classList.add('profit-text');
+          resNetYield.classList.add('profit-text');
+        } else if (netProfit < 0) {
+          statusCard.classList.add('loss');
+          resNetProfit.classList.add('loss-text');
+          resNetYield.classList.add('loss-text');
+        }
+      }
+    };
+
+    const clear = () => {
+      if (!buyPriceInput || !qtyInput || !sellPriceInput || !feePresetSelect || !marketTypeSelect || !taxYearSelect) return;
+      buyPriceInput.value = '';
+      qtyInput.value = '';
+      sellPriceInput.value = '';
+      feePresetSelect.value = '0.015';
+      feePresetSelect.dispatchEvent(new Event('change'));
+      marketTypeSelect.value = 'kosdaq';
+      taxYearSelect.value = '2026';
+      
+      if (resTotalBuy) resTotalBuy.textContent = '0 원';
+      if (resNetBuyCost) resNetBuyCost.textContent = '+수수료: 0 원';
+      if (resTotalSell) resTotalSell.textContent = '0 원';
+      if (resNetSellReceive) resNetSellReceive.textContent = '-세금/수수료: 0 원';
+      
+      if (resGrossProfit) {
+        resGrossProfit.textContent = '0 원';
+        resGrossProfit.className = 'bold-text';
+      }
+      
+      if (resBuyFeeAmt) resBuyFeeAmt.textContent = '0 원';
+      if (resSellFeeAmt) resSellFeeAmt.textContent = '0 원';
+      if (resTaxAmt) resTaxAmt.textContent = '0 원';
+      if (resTotalCosts) resTotalCosts.textContent = '0 원';
+      
+      if (resNetProfit) {
+        resNetProfit.textContent = '0 원';
+        resNetProfit.className = 'highlight-value';
+      }
+      if (resNetYield) {
+        resNetYield.textContent = '수익률: 0.00%';
+        resNetYield.className = 'highlight-sub';
+      }
+      
+      if (statusCard) {
+        statusCard.className = 'result-highlight-card';
+      }
+    };
+
+    if (calcBtn) calcBtn.addEventListener('click', calculate);
+    if (clearBtn) clearBtn.addEventListener('click', clear);
+  });
+</script>

@@ -1,0 +1,468 @@
+---
+import { getLangFromUrl } from '../../i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+
+const i18n = {
+  ko: {
+    title: '주식 복리 계산기',
+    initialCapital: '초기 투자 원금 (원)',
+    monthlyDeposit: '매월 적립식 투자금 (원)',
+    cagr: '목표 연복리 수익률 (%)',
+    periodYears: '투자 기간 (년)',
+    calculate: '시뮬레이션 실행',
+    clear: '초기화',
+    results: '시뮬레이션 예상 결과',
+    finalBalance: '최종 미래 자산액',
+    totalPrincipal: '총 납입 원금 합계',
+    totalInterest: '총 복리 수익금',
+    yearlyBreakdown: '연도별 자산 변화',
+    yearText: '년차',
+    principalText: '원금 누적액',
+    interestText: '복리 수익',
+    balanceText: '평가 잔액',
+    placeholderCapital: '초기 자금 입력 (예: 10000000)',
+    placeholderDeposit: '월 적립금 입력 (예: 500000)',
+    placeholderCagr: '연 수익률 입력 (예: 12)',
+    placeholderPeriod: '기간 입력 (예: 10)'
+  },
+  en: {
+    title: 'Stock Compound Interest Calculator',
+    initialCapital: 'Initial Capital (KRW)',
+    monthlyDeposit: 'Monthly Deposit (KRW)',
+    cagr: 'Target Annual Return (%)',
+    periodYears: 'Investment Period (Years)',
+    calculate: 'Run Simulation',
+    clear: 'Clear',
+    results: 'Simulation Growth Results',
+    finalBalance: 'Final Portfolio Balance',
+    totalPrincipal: 'Total Principal Invested',
+    totalInterest: 'Total Compound Interest',
+    yearlyBreakdown: 'Year-by-Year Growth Table',
+    yearText: 'Year',
+    principalText: 'Total Principal',
+    interestText: 'Accumulated Interest',
+    balanceText: 'Portfolio Value',
+    placeholderCapital: 'Initial capital (e.g. 10000000)',
+    placeholderDeposit: 'Monthly deposit (e.g. 500000)',
+    placeholderCagr: 'Annual yield (e.g. 12)',
+    placeholderPeriod: 'Years (e.g. 10)'
+  }
+};
+
+const t = i18n[lang] || i18n['ko'];
+---
+
+<div class="tool-compound-calc">
+  <div class="calculator-grid">
+    <!-- 입력 영역 -->
+    <div class="input-section">
+      <div class="input-group-wrapper">
+        <h3>{t.title}</h3>
+        
+        <div class="input-group">
+          <label for="compound-initial">{t.initialCapital}</label>
+          <input type="number" id="compound-initial" placeholder={t.placeholderCapital} min="0" step="100000" />
+        </div>
+
+        <div class="input-group">
+          <label for="compound-deposit">{t.monthlyDeposit}</label>
+          <input type="number" id="compound-deposit" placeholder={t.placeholderDeposit} min="0" step="50000" />
+        </div>
+
+        <div class="input-group-row">
+          <div class="input-group half">
+            <label for="compound-cagr">{t.cagr}</label>
+            <input type="number" id="compound-cagr" placeholder={t.placeholderCagr} min="0" max="100" step="0.1" value="10" />
+          </div>
+          <div class="input-group half">
+            <label for="compound-period">{t.periodYears}</label>
+            <input type="number" id="compound-period" placeholder={t.placeholderPeriod} min="1" max="50" value="10" />
+          </div>
+        </div>
+      </div>
+
+      <div class="action-buttons">
+        <button id="calc-btn" class="btn-primary">{t.calculate}</button>
+        <button id="clear-btn" class="btn-secondary">{t.clear}</button>
+      </div>
+    </div>
+
+    <!-- 결과 영역 -->
+    <div class="result-section">
+      <h3>{t.results}</h3>
+      
+      <div class="result-box highlighted">
+        <span class="result-label">{t.finalBalance}</span>
+        <span class="result-value accent" id="res-final-balance">0 원</span>
+      </div>
+
+      <div class="result-box-row">
+        <div class="result-box half">
+          <span class="result-label">{t.totalPrincipal}</span>
+          <span class="result-value" id="res-total-principal" style="font-size: 1.25rem;">0 원</span>
+        </div>
+        <div class="result-box half">
+          <span class="result-label">{t.totalInterest}</span>
+          <span class="result-value success-text" id="res-total-interest" style="font-size: 1.25rem;">0 원</span>
+        </div>
+      </div>
+
+      <!-- 연도별 표 내역 -->
+      <div class="breakdown-wrapper" style="display: none;" id="breakdown-container">
+        <h4>{t.yearlyBreakdown}</h4>
+        <div class="table-scroll-container">
+          <table class="breakdown-table">
+            <thead>
+              <tr>
+                <th>{t.yearText}</th>
+                <th>{t.principalText}</th>
+                <th>{t.interestText}</th>
+                <th>{t.balanceText}</th>
+              </tr>
+            </thead>
+            <tbody id="breakdown-tbody">
+              <!-- Dynamically populated year items -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .tool-compound-calc {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .calculator-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  @media (min-width: 768px) {
+    .calculator-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .input-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .input-group-wrapper {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+  }
+
+  h3 {
+    margin: 0 0 1.25rem 0;
+    font-size: 1.125rem;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.75rem;
+  }
+
+  .input-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1.25rem;
+  }
+
+  .input-group:last-child {
+    margin-bottom: 0;
+  }
+
+  .input-group-row {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+
+  .input-group.half {
+    flex: 1;
+    margin-bottom: 0;
+  }
+
+  label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+  }
+
+  input[type="number"] {
+    width: 100%;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius);
+    font-size: 1rem;
+    transition: all 0.2s;
+  }
+
+  input[type="number"]:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    padding: 0.875rem;
+    border-radius: var(--radius);
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.2s;
+    flex: 1;
+    cursor: pointer;
+  }
+
+  .btn-primary:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    padding: 0.875rem;
+    border-radius: var(--radius);
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.2s;
+    flex: 1;
+    cursor: pointer;
+  }
+
+  .btn-secondary:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+
+  .result-section {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .result-box {
+    background: var(--bg-hover);
+    padding: 1.25rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .result-box.highlighted {
+    background: rgba(0, 220, 130, 0.03);
+    border-color: rgba(0, 220, 130, 0.2);
+  }
+
+  .result-box-row {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .result-box.half {
+    flex: 1;
+    margin-bottom: 0;
+  }
+
+  .result-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+  }
+
+  .result-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    word-break: break-all;
+  }
+
+  .result-value.accent {
+    color: var(--accent);
+  }
+
+  .success-text {
+    color: var(--accent);
+  }
+
+  .breakdown-wrapper {
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  h4 {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--text-primary);
+  }
+
+  .table-scroll-container {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+
+  .breakdown-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+    text-align: right;
+  }
+
+  .breakdown-table th {
+    background: var(--bg-hover);
+    color: var(--text-secondary);
+    padding: 0.625rem 0.875rem;
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .breakdown-table td {
+    padding: 0.625rem 0.875rem;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .breakdown-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .breakdown-table th:first-child, .breakdown-table td:first-child {
+    text-align: center;
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // Inputs
+    const initialInput = document.getElementById('compound-initial') as HTMLInputElement;
+    const depositInput = document.getElementById('compound-deposit') as HTMLInputElement;
+    const cagrInput = document.getElementById('compound-cagr') as HTMLInputElement;
+    const periodInput = document.getElementById('compound-period') as HTMLInputElement;
+
+    // Outputs
+    const resFinalBalance = document.getElementById('res-final-balance');
+    const resTotalPrincipal = document.getElementById('res-total-principal');
+    const resTotalInterest = document.getElementById('res-total-interest');
+    
+    const breakdownContainer = document.getElementById('breakdown-container');
+    const breakdownTbody = document.getElementById('breakdown-tbody');
+
+    // Buttons
+    const calcBtn = document.getElementById('calc-btn');
+    const clearBtn = document.getElementById('clear-btn');
+
+    const formatNumber = (num: number, unit = '') => {
+      return new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(num) + unit;
+    };
+
+    const calculate = () => {
+      const initial = parseFloat(initialInput.value) || 0;
+      const deposit = parseFloat(depositInput.value) || 0;
+      const cagr = parseFloat(cagrInput.value) || 0;
+      const period = parseInt(periodInput.value) || 1;
+
+      if (initial < 0 || deposit < 0 || cagr < 0 || period <= 0) return;
+
+      const isKo = document.documentElement.lang === 'ko';
+      const unitWon = isKo ? ' 원' : ' KRW';
+      const unitYears = isKo ? '년차' : ' Yr';
+
+      // Monthly compound calculation
+      const r_annual = cagr / 100;
+      const r_monthly = Math.pow(1 + r_annual, 1 / 12) - 1;
+
+      let currentBalance = initial;
+      let totalPrincipal = initial;
+
+      if (breakdownTbody) breakdownTbody.innerHTML = '';
+
+      for (let year = 1; year <= period; year++) {
+        // Compound for 12 months in this year
+        for (let month = 1; month <= 12; month++) {
+          currentBalance = (currentBalance + deposit) * (1 + r_monthly);
+          totalPrincipal += deposit;
+        }
+
+        const totalInterest = Math.max(0, currentBalance - totalPrincipal);
+
+        // Add row to breakdown table
+        if (breakdownTbody) {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${year}${unitYears}</td>
+            <td>${formatNumber(totalPrincipal)}</td>
+            <td>${formatNumber(totalInterest)}</td>
+            <td style="font-weight: 500; color: var(--accent);">${formatNumber(currentBalance)}</td>
+          `;
+          breakdownTbody.appendChild(row);
+        }
+      }
+
+      const finalInterest = Math.max(0, currentBalance - totalPrincipal);
+
+      // Set final outputs
+      if (resFinalBalance) resFinalBalance.textContent = formatNumber(currentBalance, unitWon);
+      if (resTotalPrincipal) resTotalPrincipal.textContent = formatNumber(totalPrincipal, unitWon);
+      if (resTotalInterest) resTotalInterest.textContent = formatNumber(finalInterest, unitWon);
+
+      if (breakdownContainer) breakdownContainer.style.display = 'flex';
+    };
+
+    const clear = () => {
+      initialInput.value = '';
+      depositInput.value = '';
+      cagrInput.value = '10';
+      periodInput.value = '10';
+
+      if (resFinalBalance) resFinalBalance.textContent = '0 원';
+      if (resTotalPrincipal) resTotalPrincipal.textContent = '0 원';
+      if (resTotalInterest) resTotalInterest.textContent = '0 원';
+
+      if (breakdownContainer) breakdownContainer.style.display = 'none';
+      if (breakdownTbody) breakdownTbody.innerHTML = '';
+    };
+
+    if (calcBtn) calcBtn.addEventListener('click', calculate);
+    if (clearBtn) clearBtn.addEventListener('click', clear);
+
+    // Enter key support
+    const inputs = [initialInput, depositInput, cagrInput, periodInput];
+    inputs.forEach(input => {
+      if (input) {
+        input.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') {
+            calculate();
+          }
+        });
+      }
+    });
+  });
+</script>

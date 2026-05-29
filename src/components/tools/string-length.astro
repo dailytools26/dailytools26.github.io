@@ -10,6 +10,12 @@ const i18n = {
     withoutSpaces: '공백 제외',
     words: '단어 수',
     lines: '줄 수',
+    bytesUtf8: '바이트 (UTF-8)',
+    bytesEucKr: '바이트 (EUC-KR)',
+    copy: '복사하기',
+    clear: '비우기',
+    sample: '샘플 채우기',
+    copied: '복사 완료!'
   },
   en: {
     placeholder: 'Type or paste your text here...',
@@ -17,6 +23,12 @@ const i18n = {
     withoutSpaces: 'Characters (no spaces)',
     words: 'Words',
     lines: 'Lines',
+    bytesUtf8: 'Bytes (UTF-8)',
+    bytesEucKr: 'Bytes (EUC-KR)',
+    copy: 'Copy',
+    clear: 'Clear',
+    sample: 'Sample Text',
+    copied: 'Copied!'
   }
 };
 
@@ -24,12 +36,19 @@ const t = i18n[lang] || i18n['ko'];
 ---
 
 <div class="tool-string-length">
-  <textarea 
-    id="text-input" 
-    class="text-input" 
-    placeholder={t.placeholder}
-    rows="8"
-  ></textarea>
+  <div class="textarea-wrapper">
+    <textarea 
+      id="text-input" 
+      class="text-input" 
+      placeholder={t.placeholder}
+      rows="10"
+    ></textarea>
+    <div class="textarea-actions">
+      <button id="btn-sample" class="action-btn secondary-btn">{t.sample}</button>
+      <button id="btn-copy" class="action-btn primary-btn">{t.copy}</button>
+      <button id="btn-clear" class="action-btn danger-btn">{t.clear}</button>
+    </div>
+  </div>
 
   <div class="stats-grid">
     <div class="stat-box">
@@ -48,6 +67,14 @@ const t = i18n[lang] || i18n['ko'];
       <span class="stat-label">{t.lines}</span>
       <span class="stat-value" id="val-lines">0</span>
     </div>
+    <div class="stat-box">
+      <span class="stat-label">{t.bytesUtf8}</span>
+      <span class="stat-value" id="val-bytes-utf8">0</span>
+    </div>
+    <div class="stat-box">
+      <span class="stat-label">{t.bytesEucKr}</span>
+      <span class="stat-value" id="val-bytes-euckr">0</span>
+    </div>
   </div>
 </div>
 
@@ -55,25 +82,79 @@ const t = i18n[lang] || i18n['ko'];
   .tool-string-length {
     display: flex;
     flex-direction: column;
-    gap: 2rem;
+    gap: 1.5rem;
+  }
+
+  .textarea-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
   }
 
   .text-input {
     width: 100%;
     background: var(--bg-primary);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 1rem;
+    border-radius: var(--radius-lg);
+    padding: 1.25rem;
     color: var(--text-primary);
     font-size: 1rem;
     font-family: inherit;
     resize: vertical;
-    transition: border-color 0.2s;
+    transition: all 0.2s;
+    line-height: 1.6;
   }
 
   .text-input:focus {
     outline: none;
     border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+  }
+
+  .textarea-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+  }
+
+  .action-btn {
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius);
+    font-size: 0.875rem;
+    font-weight: 600;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+  }
+
+  .primary-btn {
+    background: var(--accent);
+    color: #000;
+  }
+
+  .primary-btn:hover {
+    background: var(--accent-hover);
+  }
+
+  .secondary-btn {
+    background: transparent;
+    color: var(--text-secondary);
+    border-color: var(--border);
+  }
+
+  .secondary-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+
+  .danger-btn {
+    background: rgba(239, 68, 68, 0.1);
+    color: #fca5a5;
+    border-color: rgba(239, 68, 68, 0.2);
+  }
+
+  .danger-btn:hover {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ffffff;
   }
 
   .stats-grid {
@@ -84,30 +165,43 @@ const t = i18n[lang] || i18n['ko'];
 
   @media (min-width: 640px) {
     .stats-grid {
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .stats-grid {
+      grid-template-columns: repeat(6, 1fr);
     }
   }
 
   .stat-box {
-    background: var(--bg-hover);
-    padding: 1.5rem;
-    border-radius: var(--radius);
+    background: var(--bg-primary);
+    padding: 1.25rem 1rem;
+    border-radius: var(--radius-lg);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     border: 1px solid var(--border);
+    transition: all 0.2s;
+  }
+
+  .stat-box:hover {
+    border-color: var(--border-hover);
+    transform: translateY(-2px);
+    background: var(--bg-hover);
   }
 
   .stat-label {
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
     color: var(--text-secondary);
     margin-bottom: 0.5rem;
     text-align: center;
   }
 
   .stat-value {
-    font-size: 2rem;
+    font-size: 1.75rem;
     font-weight: 700;
     color: var(--accent);
   }
@@ -120,8 +214,33 @@ const t = i18n[lang] || i18n['ko'];
     const valNoSpaces = document.getElementById('val-no-spaces');
     const valWords = document.getElementById('val-words');
     const valLines = document.getElementById('val-lines');
+    const valBytesUtf8 = document.getElementById('val-bytes-utf8');
+    const valBytesEuckr = document.getElementById('val-bytes-euckr');
+
+    // Action buttons
+    const btnSample = document.getElementById('btn-sample');
+    const btnCopy = document.getElementById('btn-copy');
+    const btnClear = document.getElementById('btn-clear');
 
     if (!input) return;
+
+    // Helper functions for byte size calculation
+    const getUtf8Bytes = (str: string): number => {
+      return new TextEncoder().encode(str).length;
+    };
+
+    const getEucKrBytes = (str: string): number => {
+      let bytes = 0;
+      for (let i = 0; i < str.length; i++) {
+        const code = str.charCodeAt(i);
+        if (code <= 0x7F) {
+          bytes += 1;
+        } else {
+          bytes += 2;
+        }
+      }
+      return bytes;
+    };
 
     const calculateStats = () => {
       const text = input.value;
@@ -135,7 +254,6 @@ const t = i18n[lang] || i18n['ko'];
       }
       
       if (valWords) {
-        // 단어 수 계산 (공백으로 구분, 빈 문자열 제외)
         const wordCount = text.trim() === '' ? 0 : text.trim().split(/\s+/).length;
         valWords.textContent = wordCount.toString();
       }
@@ -144,8 +262,63 @@ const t = i18n[lang] || i18n['ko'];
         const lineCount = text === '' ? 0 : text.split(/\r\n|\r|\n/).length;
         valLines.textContent = lineCount.toString();
       }
+
+      if (valBytesUtf8) {
+        valBytesUtf8.textContent = getUtf8Bytes(text).toString();
+      }
+
+      if (valBytesEuckr) {
+        valBytesEuckr.textContent = getEucKrBytes(text).toString();
+      }
     };
 
+    // Event listeners for changes
     input.addEventListener('input', calculateStats);
+
+    // Initial calculation in case there is pre-filled text
+    calculateStats();
+
+    // Language detection for sample text
+    const isKo = document.documentElement.lang === 'ko';
+    const sampleText = isKo 
+      ? '안녕하세요! DailyTools26을 찾아주셔서 감사합니다. 이 도구는 실시간으로 글자 수, 공백 제외 글자 수, 단어 수, 줄 수 및 인코딩 방식별 바이트 수를 정확하게 계산해 줍니다. 텍스트를 입력하여 바로 결과를 확인해 보세요.'
+      : 'Hello! Thank you for using DailyTools26. This tool calculates character counts (with/without spaces), word counts, line counts, and byte sizes for different encoding methods in real-time. Paste your text here to check the results instantly.';
+    
+    const copiedText = isKo ? '복사 완료!' : 'Copied!';
+    const originalCopyText = btnCopy ? btnCopy.textContent : 'Copy';
+
+    // Button actions
+    if (btnSample) {
+      btnSample.addEventListener('click', () => {
+        input.value = sampleText;
+        calculateStats();
+        input.focus();
+      });
+    }
+
+    if (btnClear) {
+      btnClear.addEventListener('click', () => {
+        input.value = '';
+        calculateStats();
+        input.focus();
+      });
+    }
+
+    if (btnCopy) {
+      btnCopy.addEventListener('click', () => {
+        if (!input.value) return;
+        navigator.clipboard.writeText(input.value).then(() => {
+          btnCopy.textContent = copiedText;
+          // Apply feedback colors using style attribute safely
+          btnCopy.style.background = 'var(--accent-hover)';
+          setTimeout(() => {
+            if (btnCopy) {
+              btnCopy.textContent = originalCopyText;
+              btnCopy.style.background = '';
+            }
+          }, 1500);
+        });
+      });
+    }
   });
 </script>

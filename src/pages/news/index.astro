@@ -1,0 +1,240 @@
+---
+import { getCollection } from 'astro:content';
+import Layout from '../../layouts/Layout.astro';
+
+// ko 언어 뉴스 필터링 및 최신일 정렬
+const allPosts = await getCollection('news');
+const posts = allPosts
+  .filter(post => post.data.lang === 'ko')
+  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+
+// SEO 세팅
+const title = '최신 재테크 및 투자 뉴스';
+const description = '국내 주식 거래세 변동, 세제 개편안, 그리고 배당 성장 투자 및 복리 재투자 기법까지 투자자에게 필요한 정확하고 유용한 최신 정보를 공유합니다.';
+const keywords = ['투자 뉴스', '증권세법 소식', '배당 전략', '재테크 정보', '세금 정보'];
+
+const formatDate = (date: Date) => {
+  return new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }).format(date);
+};
+---
+
+<Layout title={title} description={description} keywords={keywords}>
+  <div class="container news-container">
+    <header class="news-header">
+      <span class="news-badge">News & Insights</span>
+      <h1>최신 재테크 및 투자 소식</h1>
+      <p class="lead-text">금융 시장의 변화, 세법 개정 이슈, 그리고 투자 공학적인 전략을 마크다운 기사로 쉽고 명확하게 전달해 드립니다.</p>
+    </header>
+
+    <hr class="section-divider" />
+
+    <div class="news-grid">
+      {posts.length > 0 ? (
+        posts.map(post => (
+          <article class="news-card">
+            <div class="news-card-content">
+              <div class="news-meta">
+                <time datetime={post.data.pubDate.toISOString()}>{formatDate(post.data.pubDate)}</time>
+                {post.data.featured && <span class="featured-badge">Featured</span>}
+              </div>
+              
+              <h2>
+                <a href={`/news/${post.id}`} class="news-title-link">
+                  {post.data.title}
+                </a>
+              </h2>
+              
+              <p class="news-desc">{post.data.description}</p>
+              
+              <div class="news-tags">
+                {post.data.tags?.map(tag => (
+                  <span class="tag">#{tag}</span>
+                ))}
+              </div>
+              
+              <div class="news-footer">
+                <a href={`/news/${post.id}`} class="read-more">
+                  기사 읽기 <span>&rarr;</span>
+                </a>
+              </div>
+            </div>
+          </article>
+        ))
+      ) : (
+        <div class="no-posts">
+          <p>등록된 최신 소식이 없습니다.</p>
+        </div>
+      )}
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .news-container {
+    padding-top: 3rem;
+    padding-bottom: 5rem;
+    max-width: 900px;
+  }
+
+  .news-header {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  .news-badge {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--accent);
+    background: var(--accent-glow);
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    margin-bottom: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .news-header h1 {
+    font-size: 2.75rem;
+    font-weight: 800;
+    margin: 0 0 1rem 0;
+    letter-spacing: -0.02em;
+  }
+
+  .lead-text {
+    font-size: 1.15rem;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    margin: 0 auto;
+    max-width: 650px;
+  }
+
+  .section-divider {
+    border: 0;
+    height: 1px;
+    background: var(--border);
+    margin: 2.5rem 0;
+  }
+
+  .news-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .news-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    transition: all 0.2s ease;
+  }
+
+  .news-card:hover {
+    border-color: var(--border-hover);
+    transform: translateY(-2px);
+  }
+
+  .news-card-content {
+    padding: 2rem;
+  }
+
+  .news-meta {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .news-meta time {
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  .featured-badge {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    color: #000;
+    background: var(--accent);
+    padding: 0.125rem 0.5rem;
+    border-radius: 4px;
+    text-transform: uppercase;
+  }
+
+  .news-card h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0 0 1rem 0;
+    line-height: 1.3;
+  }
+
+  .news-title-link {
+    color: var(--text-primary);
+    transition: color 0.2s ease;
+  }
+
+  .news-title-link:hover {
+    color: var(--accent);
+  }
+
+  .news-desc {
+    font-size: 0.9375rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin: 0 0 1.25rem 0;
+  }
+
+  .news-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .tag {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    background: var(--bg-hover);
+    padding: 0.25rem 0.625rem;
+    border-radius: 9999px;
+  }
+
+  .news-footer {
+    border-top: 1px solid var(--border);
+    padding-top: 1.25rem;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .read-more {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    transition: color 0.2s ease;
+  }
+
+  .read-more span {
+    transition: transform 0.2s ease;
+  }
+
+  .read-more:hover {
+    color: var(--accent-hover);
+  }
+
+  .read-more:hover span {
+    transform: translateX(3px);
+  }
+
+  .no-posts {
+    text-align: center;
+    padding: 4rem;
+    color: var(--text-muted);
+    background: var(--bg-card);
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-lg);
+  }
+</style>

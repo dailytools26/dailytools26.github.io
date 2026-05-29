@@ -1,0 +1,663 @@
+---
+import { getLangFromUrl } from '../../i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+
+const i18n = {
+  ko: {
+    title: '증여세 & 상속세 간이 계산기',
+    taxType: '세금 종류',
+    giftTax: '증여세 (살아서 줄 때)',
+    inheritanceTax: '상속세 (사망 후 물려줄 때)',
+    assetValue: '증여 / 상속 재산 가액 (원)',
+    relation: '증여자와의 관계',
+    relationSpouse: '배우자',
+    relationParents: '직계존속 (부모, 조부모 등)',
+    relationChildren: '직계비속 (자녀, 손자녀 등)',
+    relationRelative: '기타 친족 (6촌 이내 혈족 등)',
+    relationOthers: '타인 / 기타',
+    inheritanceFamily: '상속인 가족 구성',
+    spouseAndChildren: '배우자와 자녀 모두 있음 (최소 10억 공제)',
+    spouseOnly: '배우자만 있음 (최소 7억 공제)',
+    childrenOnly: '자녀만 있음 / 기타 (최소 5억 공제)',
+    minorChild: '수증자가 미성년자입니까?',
+    minorYes: '미성년자 (만 19세 미만)',
+    minorNo: '성인',
+    genSkipping: '세대 생략 증여 (할증)',
+    genSkippingYes: '할증 대상 (예: 할아버지가 손자에게 직접 증여)',
+    genSkippingNo: '일반 증여',
+    calculate: '계산하기',
+    clear: '초기화',
+    results: '예상 계산 결과',
+    totalTax: '예상 산출 세액',
+    deductions: '적용 공제액',
+    taxableBase: '예상 과세표준',
+    taxRate: '적용 최고 세율',
+    surchargeAmt: '세대생략 할증 세액 (30%)',
+    placeholderAsset: '재산 가액 입력 (예: 200000000)',
+    disclaimer: '※ 본 계산기는 기본적인 공제 한도와 세율만을 반영한 단순 시뮬레이션입니다. 동거주택 상속공제, 금융재산 상속공제, 증여세 과세특례 및 10년 이내 사전 증여 재산 가산 등 세부 요건에 따라 실제 세액은 크게 다를 수 있으므로 전문 세무사와의 상담을 권장합니다.'
+  },
+  en: {
+    title: 'Gift & Inheritance Tax Calculator',
+    taxType: 'Tax Type',
+    giftTax: 'Gift Tax (Inter-Vivos)',
+    inheritanceTax: 'Inheritance Tax (Mortis Causa)',
+    assetValue: 'Asset Value (KRW)',
+    relation: 'Relationship with Giver',
+    relationSpouse: 'Spouse',
+    relationParents: 'Parents / Grandparents',
+    relationChildren: 'Children / Grandchildren',
+    relationRelative: 'Other Relatives',
+    relationOthers: 'Others / Unrelated',
+    inheritanceFamily: 'Inheritance Family Status',
+    spouseAndChildren: 'Both Spouse & Children (Min 1B KRW deduction)',
+    spouseOnly: 'Spouse Only (Min 700M KRW deduction)',
+    childrenOnly: 'Children Only / Other (Min 500M KRW deduction)',
+    minorChild: 'Is the recipient a minor?',
+    minorYes: 'Minor (Under 19)',
+    minorNo: 'Adult',
+    genSkipping: 'Generation Skipping (Surcharge)',
+    genSkippingYes: 'Grandparent to Grandchild (30% surcharge)',
+    genSkippingNo: 'Standard Transfer',
+    calculate: 'Calculate',
+    clear: 'Clear',
+    results: 'Estimated Taxes',
+    totalTax: 'Estimated Total Tax',
+    deductions: 'Applied Deductions',
+    taxableBase: 'Taxable Base',
+    taxRate: 'Applied Max Tax Rate',
+    surchargeAmt: 'Generation-Skipping Surcharge (30%)',
+    placeholderAsset: 'Enter asset value (e.g. 200000000)',
+    disclaimer: '* This is a simplified simulation based on standard deductions and progressive rates. Actual taxes can differ significantly depending on historical gifts within 10 years and other specific deductions.'
+  }
+};
+
+const t = i18n[lang] || i18n['ko'];
+---
+
+<div class="tool-gift-inheritance">
+  <div class="calculator-grid">
+    <!-- 입력 영역 -->
+    <div class="input-section">
+      <div class="input-group-wrapper">
+        <h3>{t.title}</h3>
+        
+        <div class="input-group">
+          <label>{t.taxType}</label>
+          <div class="toggle-buttons">
+            <button type="button" id="type-gift" class="toggle-btn active">{t.giftTax}</button>
+            <button type="button" id="type-inheritance" class="toggle-btn">{t.inheritanceTax}</button>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label for="asset-value">{t.assetValue}</label>
+          <input type="number" id="asset-value" placeholder={t.placeholderAsset} min="0" step="10000000" />
+        </div>
+
+        <!-- 증여세용 관계 선택 -->
+        <div class="input-group" id="gift-relation-group">
+          <label for="gift-relation">{t.relation}</label>
+          <select id="gift-relation">
+            <option value="spouse">{t.relationSpouse}</option>
+            <option value="parents">{t.relationParents}</option>
+            <option value="children" selected>{t.relationChildren}</option>
+            <option value="relatives">{t.relationRelative}</option>
+            <option value="others">{t.relationOthers}</option>
+          </select>
+        </div>
+
+        <!-- 증여세용 미성년 및 세대생략 옵션 -->
+        <div class="input-group-row" id="gift-extra-opts">
+          <div class="input-group half">
+            <label>{t.minorChild}</label>
+            <div class="toggle-buttons">
+              <button type="button" id="minor-no" class="toggle-btn active">{t.minorNo}</button>
+              <button type="button" id="minor-yes" class="toggle-btn">{t.minorYes}</button>
+            </div>
+          </div>
+          <div class="input-group half">
+            <label>{t.genSkipping}</label>
+            <div class="toggle-buttons">
+              <button type="button" id="gen-no" class="toggle-btn active">{t.genSkippingNo}</button>
+              <button type="button" id="gen-yes" class="toggle-btn">{t.genSkippingYes}</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 상속세용 가족관계 선택 -->
+        <div class="input-group" id="inheritance-family-group" style="display: none;">
+          <label>{t.inheritanceFamily}</label>
+          <div class="family-options">
+            <button type="button" id="fam-both" class="family-btn active">{t.spouseAndChildren}</button>
+            <button type="button" id="fam-spouse" class="family-btn">{t.spouseOnly}</button>
+            <button type="button" id="fam-children" class="family-btn">{t.childrenOnly}</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="action-buttons">
+        <button id="calc-btn" class="btn-primary">{t.calculate}</button>
+        <button id="clear-btn" class="btn-secondary">{t.clear}</button>
+      </div>
+    </div>
+
+    <!-- 결과 영역 -->
+    <div class="result-section">
+      <h3>{t.results}</h3>
+      
+      <div class="result-box highlighted">
+        <span class="result-label">{t.totalTax}</span>
+        <span class="result-value accent" id="res-total-tax">0 원</span>
+      </div>
+
+      <div class="tax-detail-list">
+        <div class="detail-item">
+          <span>{t.deductions}</span>
+          <span id="res-deductions">0 원</span>
+        </div>
+        <div class="detail-item">
+          <span>{t.taxableBase}</span>
+          <span id="res-taxable-base">0 원</span>
+        </div>
+        <div class="detail-item">
+          <span>{t.taxRate}</span>
+          <span id="res-tax-rate">0%</span>
+        </div>
+        <div class="detail-item" id="surcharge-row" style="display: none;">
+          <span>{t.surchargeAmt}</span>
+          <span id="res-surcharge-amt" class="danger-text">0 원</span>
+        </div>
+      </div>
+
+      <p class="disclaimer-text">{t.disclaimer}</p>
+    </div>
+  </div>
+</div>
+
+<style>
+  .tool-gift-inheritance {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .calculator-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  @media (min-width: 768px) {
+    .calculator-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .input-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .input-group-wrapper {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+  }
+
+  h3 {
+    margin: 0 0 1.25rem 0;
+    font-size: 1.125rem;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.75rem;
+  }
+
+  .input-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1.25rem;
+  }
+
+  .input-group:last-child {
+    margin-bottom: 0;
+  }
+
+  .input-group-row {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+
+  .input-group.half {
+    flex: 1;
+    margin-bottom: 0;
+  }
+
+  label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+  }
+
+  input[type="number"], select {
+    width: 100%;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius);
+    font-size: 1rem;
+    transition: all 0.2s;
+  }
+
+  input[type="number"]:focus, select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+  }
+
+  .toggle-buttons {
+    display: flex;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.25rem;
+  }
+
+  .toggle-btn {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    border-radius: calc(var(--radius) - 2px);
+    transition: all 0.2s;
+  }
+
+  .toggle-btn.active {
+    background: var(--accent);
+    color: #000;
+  }
+
+  .family-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .family-btn {
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    padding: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+  }
+
+  .family-btn:hover {
+    border-color: var(--border-hover);
+    color: var(--text-primary);
+  }
+
+  .family-btn.active {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    padding: 0.875rem;
+    border-radius: var(--radius);
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.2s;
+    flex: 1;
+  }
+
+  .btn-primary:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    padding: 0.875rem;
+    border-radius: var(--radius);
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.2s;
+    flex: 1;
+  }
+
+  .btn-secondary:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+
+  .result-section {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .result-box {
+    background: var(--bg-hover);
+    padding: 1.25rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .result-box.highlighted {
+    background: rgba(0, 220, 130, 0.03);
+    border-color: rgba(0, 220, 130, 0.2);
+  }
+
+  .result-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+  }
+
+  .result-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    word-break: break-all;
+  }
+
+  .result-value.accent {
+    color: var(--accent);
+  }
+
+  .danger-text {
+    color: #ef4444;
+  }
+
+  .tax-detail-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+    border-top: 1px dashed var(--border);
+    border-bottom: 1px dashed var(--border);
+  }
+
+  .detail-item {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+  }
+
+  .detail-item span:last-child {
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+
+  .disclaimer-text {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin-top: 0.5rem;
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // Inputs
+    const assetInput = document.getElementById('asset-value') as HTMLInputElement;
+    const relationSelect = document.getElementById('gift-relation') as HTMLSelectElement;
+
+    // Toggle targets
+    const typeGift = document.getElementById('type-gift');
+    const typeInheritance = document.getElementById('type-inheritance');
+    let isInheritance = false;
+
+    // Sub-settings groups
+    const giftRelationGroup = document.getElementById('gift-relation-group');
+    const giftExtraOpts = document.getElementById('gift-extra-opts');
+    const inheritanceFamilyGroup = document.getElementById('inheritance-family-group');
+
+    // Minor child & gen skipping
+    let isMinor = false;
+    let isGenSkipping = false;
+    const minorNo = document.getElementById('minor-no');
+    const minorYes = document.getElementById('minor-yes');
+    const genNo = document.getElementById('gen-no');
+    const genYes = document.getElementById('gen-yes');
+
+    // Inheritance family selection
+    let inheritanceType = 'both'; // both, spouse, children
+    const famBoth = document.getElementById('fam-both');
+    const famSpouse = document.getElementById('fam-spouse');
+    const famChildren = document.getElementById('fam-children');
+
+    // Outputs
+    const resTotalTax = document.getElementById('res-total-tax');
+    const resDeductions = document.getElementById('res-deductions');
+    const resTaxableBase = document.getElementById('res-taxable-base');
+    const resTaxRate = document.getElementById('res-tax-rate');
+    const surchargeRow = document.getElementById('surcharge-row');
+    const resSurchargeAmt = document.getElementById('res-surcharge-amt');
+
+    // Buttons
+    const calcBtn = document.getElementById('calc-btn');
+    const clearBtn = document.getElementById('clear-btn');
+
+    const formatNumber = (num: number, unit = ' 원') => {
+      return new Intl.NumberFormat().format(Math.round(num)) + unit;
+    };
+
+    // Toggle tax type listeners
+    if (typeGift && typeInheritance) {
+      typeGift.addEventListener('click', () => {
+        isInheritance = false;
+        typeGift.classList.add('active');
+        typeInheritance.classList.remove('active');
+        if (giftRelationGroup) giftRelationGroup.style.display = 'flex';
+        if (giftExtraOpts) giftExtraOpts.style.display = 'flex';
+        if (inheritanceFamilyGroup) inheritanceFamilyGroup.style.display = 'none';
+      });
+      typeInheritance.addEventListener('click', () => {
+        isInheritance = true;
+        typeInheritance.classList.add('active');
+        typeGift.classList.remove('active');
+        if (giftRelationGroup) giftRelationGroup.style.display = 'none';
+        if (giftExtraOpts) giftExtraOpts.style.display = 'none';
+        if (inheritanceFamilyGroup) inheritanceFamilyGroup.style.display = 'flex';
+      });
+    }
+
+    // Minor & Gen skipping listeners
+    if (minorNo && minorYes) {
+      minorNo.addEventListener('click', () => {
+        isMinor = false;
+        minorNo.classList.add('active');
+        minorYes.classList.remove('active');
+      });
+      minorYes.addEventListener('click', () => {
+        isMinor = true;
+        minorYes.classList.add('active');
+        minorNo.classList.remove('active');
+      });
+    }
+
+    if (genNo && genYes) {
+      genNo.addEventListener('click', () => {
+        isGenSkipping = false;
+        genNo.classList.add('active');
+        genYes.classList.remove('active');
+      });
+      genYes.addEventListener('click', () => {
+        isGenSkipping = true;
+        genYes.classList.add('active');
+        genNo.classList.remove('active');
+      });
+    }
+
+    // Inheritance family listeners
+    const resetFamilyButtons = () => {
+      [famBoth, famSpouse, famChildren].forEach(btn => btn?.classList.remove('active'));
+    };
+
+    famBoth?.addEventListener('click', () => {
+      resetFamilyButtons();
+      inheritanceType = 'both';
+      famBoth.classList.add('active');
+    });
+
+    famSpouse?.addEventListener('click', () => {
+      resetFamilyButtons();
+      inheritanceType = 'spouse';
+      famSpouse.classList.add('active');
+    });
+
+    famChildren?.addEventListener('click', () => {
+      resetFamilyButtons();
+      inheritanceType = 'children';
+      famChildren.classList.add('active');
+    });
+
+    const calculate = () => {
+      const asset = parseFloat(assetInput.value) || 0;
+      if (asset <= 0) return;
+
+      let deduction = 0;
+
+      // 1. Calculate Deduction Amount
+      if (!isInheritance) {
+        const relation = relationSelect.value;
+        if (relation === 'spouse') {
+          deduction = 600000000; // 6억 원
+        } else if (relation === 'parents') {
+          deduction = 50000000; // 5천만 원
+        } else if (relation === 'children') {
+          deduction = isMinor ? 10000000 : 50000000; // 미성년 1천, 성인 5천
+        } else if (relation === 'relatives') {
+          deduction = 10000000; // 1천만 원
+        } else {
+          deduction = 0;
+        }
+      } else {
+        if (inheritanceType === 'both') {
+          deduction = 1000000000; // 일괄공제 5억 + 배우자 최소공제 5억 = 10억
+        } else if (inheritanceType === 'spouse') {
+          deduction = 700000000; // 기초공제 2억 + 배우자 최소공제 5억 = 7억
+        } else {
+          deduction = 500000000; // 일괄공제 5억
+        }
+      }
+
+      // 2. Taxable Base
+      const taxableBase = Math.max(0, asset - deduction);
+
+      // 3. Calculate Tax (Brackets)
+      let rate = 0;
+      let progressiveDeduction = 0;
+
+      if (taxableBase <= 100000000) {
+        rate = 10;
+        progressiveDeduction = 0;
+      } else if (taxableBase <= 500000000) {
+        rate = 20;
+        progressiveDeduction = 10000000;
+      } else if (taxableBase <= 1000000000) {
+        rate = 30;
+        progressiveDeduction = 60000000;
+      } else if (taxableBase <= 3000000000) {
+        rate = 40;
+        progressiveDeduction = 160000000;
+      } else {
+        rate = 50;
+        progressiveDeduction = 460000000;
+      }
+
+      let tax = (taxableBase * (rate / 100)) - progressiveDeduction;
+      tax = Math.max(0, tax);
+
+      // Surcharges (Gen skipping - 30% for gift tax only)
+      let surcharge = 0;
+      if (!isInheritance && isGenSkipping && tax > 0) {
+        surcharge = Math.floor(tax * 0.3);
+        if (surchargeRow) surchargeRow.style.display = 'flex';
+        if (resSurchargeAmt) resSurchargeAmt.textContent = formatNumber(surcharge);
+      } else {
+        if (surchargeRow) surchargeRow.style.display = 'none';
+      }
+
+      const totalTax = tax + surcharge;
+
+      // Display outputs
+      if (resTotalTax) resTotalTax.textContent = formatNumber(totalTax);
+      if (resDeductions) resDeductions.textContent = formatNumber(deduction);
+      if (resTaxableBase) resTaxableBase.textContent = formatNumber(taxableBase);
+      if (resTaxRate) resTaxRate.textContent = taxableBase > 0 ? `${rate}%` : '0%';
+    };
+
+    const clear = () => {
+      assetInput.value = '';
+      relationSelect.value = 'children';
+      
+      isInheritance = false;
+      typeGift?.classList.add('active');
+      typeInheritance?.classList.remove('active');
+      if (giftRelationGroup) giftRelationGroup.style.display = 'flex';
+      if (giftExtraOpts) giftExtraOpts.style.display = 'flex';
+      if (inheritanceFamilyGroup) inheritanceFamilyGroup.style.display = 'none';
+
+      isMinor = false;
+      minorNo?.classList.add('active');
+      minorYes?.classList.remove('active');
+
+      isGenSkipping = false;
+      genNo?.classList.add('active');
+      genYes?.classList.remove('active');
+
+      inheritanceType = 'both';
+      resetFamilyButtons();
+      famBoth?.classList.add('active');
+
+      if (resTotalTax) resTotalTax.textContent = '0 원';
+      if (resDeductions) resDeductions.textContent = '0 원';
+      if (resTaxableBase) resTaxableBase.textContent = '0 원';
+      if (resTaxRate) resTaxRate.textContent = '0%';
+      if (surchargeRow) surchargeRow.style.display = 'none';
+    };
+
+    if (calcBtn) calcBtn.addEventListener('click', calculate);
+    if (clearBtn) clearBtn.addEventListener('click', clear);
+
+    // Enter key support
+    if (assetInput) {
+      assetInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          calculate();
+        }
+      });
+    }
+  });
+</script>

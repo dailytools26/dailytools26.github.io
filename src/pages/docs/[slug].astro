@@ -1,0 +1,358 @@
+---
+import { getCollection, render } from 'astro:content';
+import Layout from '../../layouts/Layout.astro';
+
+export async function getStaticPaths() {
+  const docs = await getCollection('docs');
+  return docs.map(doc => ({
+    params: { slug: doc.id }, // doc.id is the file slug (e.g., 'doc-salary')
+    props: { doc },
+  }));
+}
+
+const { doc } = Astro.props;
+const { Content } = await render(doc);
+
+const allDocs = await getCollection('docs');
+
+// Sort: Tax, Real Estate, Stocks
+const categoryOrder: Record<string, number> = { 'tax': 1, 'real-estate': 2, 'stock': 3 };
+
+const sortedDocs = allDocs.sort((a, b) => {
+  if (a.data.category !== b.data.category) {
+    return (categoryOrder[a.data.category] || 99) - (categoryOrder[b.data.category] || 99);
+  }
+  return a.data.order - b.data.order;
+});
+
+const groupedCategories: Array<{ slug: string; label: string; items: typeof allDocs }> = [];
+sortedDocs.forEach(d => {
+  let cat = groupedCategories.find(c => c.slug === d.data.category);
+  if (!cat) {
+    cat = { slug: d.data.category, label: d.data.categoryLabel, items: [] };
+    groupedCategories.push(cat);
+  }
+  cat.items.push(d);
+});
+
+const title = doc.data.title;
+const description = doc.data.description;
+const keywords = doc.data.keywords || [];
+---
+
+<Layout title={title} description={description} keywords={keywords}>
+  <div class="container docs-container">
+    <aside class="docs-sidebar">
+      <nav class="sidebar-nav">
+        <div class="sidebar-header">
+          <a href="/docs" class="back-to-portal">
+            <span>&larr;</span> 문서 목록 전체보기
+          </a>
+        </div>
+        
+        {groupedCategories.map((cat, index) => (
+          <div class="nav-section">
+            <h3 class="nav-section-title">{index + 1}. {cat.label}</h3>
+            <ul>
+              {cat.items.map(item => (
+                <li>
+                  <a 
+                    href={`/docs/${item.id}`} 
+                    class={item.id === doc.id ? 'active' : ''}
+                  >
+                    {item.data.shortTitle}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </nav>
+    </aside>
+
+    <main class="docs-content">
+      <article class="doc-card">
+        <header class="docs-header">
+          <span class="docs-category-badge">{doc.data.categoryLabel}</span>
+          <h1>{doc.data.title}</h1>
+          <p class="lead-text">{doc.data.description}</p>
+        </header>
+
+        <hr class="section-divider" />
+
+        <div class="prose">
+          <Content />
+        </div>
+      </article>
+    </main>
+  </div>
+</Layout>
+
+<style>
+  .docs-container {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+    padding-top: 3rem;
+    padding-bottom: 5rem;
+  }
+
+  @media (min-width: 992px) {
+    .docs-container {
+      grid-template-columns: 280px 1fr;
+    }
+  }
+
+  /* 사이드바 목차 스타일 */
+  .docs-sidebar {
+    position: relative;
+  }
+
+  @media (min-width: 992px) {
+    .sidebar-nav {
+      position: sticky;
+      top: 100px;
+      max-height: calc(100vh - 140px);
+      overflow-y: auto;
+      padding-right: 1rem;
+    }
+  }
+
+  .sidebar-header {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .back-to-portal {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    transition: color 0.2s ease;
+  }
+
+  .back-to-portal:hover {
+    color: var(--accent);
+  }
+
+  .nav-section {
+    margin-bottom: 1.5rem;
+  }
+
+  .nav-section-title {
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 0.75rem 0;
+    letter-spacing: 0.02em;
+  }
+
+  .sidebar-nav ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    border-left: 1px solid var(--border);
+    padding-left: 0.75rem;
+  }
+
+  .sidebar-nav li a {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    transition: all 0.2s ease;
+    font-weight: 500;
+    display: block;
+    padding: 0.125rem 0;
+  }
+
+  .sidebar-nav li a:hover {
+    color: var(--accent);
+    padding-left: 2px;
+  }
+
+  .sidebar-nav li a.active {
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  /* 본문 콘텐츠 스타일 */
+  .docs-content {
+    min-width: 0;
+  }
+
+  .doc-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 2rem 1.5rem;
+    transition: border-color 0.2s ease;
+  }
+
+  @media (min-width: 768px) {
+    .doc-card {
+      padding: 3rem;
+    }
+  }
+
+  .docs-header {
+    margin-bottom: 2rem;
+  }
+
+  .docs-category-badge {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--accent);
+    background: var(--accent-glow);
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    margin-bottom: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .docs-header h1 {
+    font-size: clamp(1.75rem, 4vw, 2.5rem);
+    font-weight: 800;
+    margin: 0 0 1rem 0;
+    letter-spacing: -0.02em;
+    color: var(--text-primary);
+  }
+
+  .lead-text {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  .section-divider {
+    border: 0;
+    height: 1px;
+    background: var(--border);
+    margin: 2.5rem 0;
+  }
+
+  /* 마크다운 콘텐츠 렌더링 스타일 */
+  .prose {
+    font-size: 1rem;
+    line-height: 1.75;
+    color: var(--text-secondary);
+  }
+
+  .prose :global(p) {
+    margin: 0 0 1.25rem 0;
+  }
+
+  .prose :global(strong) {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+
+  .prose :global(ul), .prose :global(ol) {
+    margin: 0 0 1.25rem 0;
+    padding-left: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .prose :global(li) {
+    margin-bottom: 0.25rem;
+  }
+
+  /* 테이블 서식 */
+  .prose :global(table) {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+    font-size: 0.875rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .prose :global(th), .prose :global(td) {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .prose :global(th) {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    font-weight: 600;
+    text-align: left;
+  }
+
+  .prose :global(td) {
+    color: var(--text-secondary);
+  }
+
+  .prose :global(tr:last-child td) {
+    border-bottom: none;
+  }
+
+  /* 공식 박스 */
+  .prose :global(.formula-box) {
+    background: var(--bg-primary);
+    border-left: 3px solid var(--accent);
+    padding: 1rem 1.25rem;
+    margin: 1.25rem 0;
+    border-radius: 0 var(--radius) var(--radius) 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .prose :global(.formula-title) {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .prose :global(.formula-box code) {
+    font-family: monospace;
+    font-size: 0.9375rem;
+    color: var(--text-primary);
+    white-space: pre-wrap;
+    word-break: break-all;
+    background: transparent;
+    border: none;
+    padding: 0;
+  }
+
+  /* 서브 그리드 카드 */
+  .prose :global(.results-sub-grid) {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    margin-top: 1.25rem;
+  }
+
+  @media (min-width: 768px) {
+    .prose :global(.results-sub-grid) {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .prose :global(.mini-card-info) {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    padding: 1.25rem;
+    border-radius: var(--radius);
+  }
+
+  .prose :global(.mini-card-info strong) {
+    display: block;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+  }
+</style>

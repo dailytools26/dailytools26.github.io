@@ -1,0 +1,476 @@
+---
+import { getLangFromUrl } from '../../i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+
+const i18n = {
+  ko: {
+    title: '주식 목표가 계산기',
+    currentPrice: '현재 보유 평단가 (원)',
+    quantity: '보유 수량',
+    targetType: '목표 구분',
+    targetYield: '목표 수익률 (%)',
+    targetProfit: '목표 수익금액 (원)',
+    buyFee: '매수 수수료율 (%)',
+    sellFee: '매도 수수료율 (%)',
+    sellTax: '증권거래세율 (%)',
+    calculate: '계산하기',
+    clear: '초기화',
+    results: '계산 결과',
+    targetPrice: '주당 목표 매도가',
+    totalRevenue: '총 매도 목표 금액',
+    totalCost: '매수 원금 합계 (수수료 포함)',
+    feesAndTaxes: '총 예상 세금 및 수수료',
+    placeholderPrice: '평단가 입력 (예: 50000)',
+    placeholderQty: '수량 입력 (예: 100)',
+    placeholderValue: '목표값 입력 (예: 10 또는 500000)'
+  },
+  en: {
+    title: 'Stock Target Price Calculator',
+    currentPrice: 'Current Average Price (KRW)',
+    quantity: 'Holdings Quantity',
+    targetType: 'Target Type',
+    targetYield: 'Target Yield (%)',
+    targetProfit: 'Target Profit (KRW)',
+    buyFee: 'Buy Fee Rate (%)',
+    sellFee: 'Sell Fee Rate (%)',
+    sellTax: 'Transaction Tax (%)',
+    calculate: 'Calculate',
+    clear: 'Clear',
+    results: 'Results',
+    targetPrice: 'Target Selling Price/Share',
+    totalRevenue: 'Total Selling Revenue',
+    totalCost: 'Total Purchase Cost (incl. Buy Fee)',
+    feesAndTaxes: 'Estimated Surcharges (Fees & Tax)',
+    placeholderPrice: 'Enter avg price (e.g. 50000)',
+    placeholderQty: 'Enter quantity (e.g. 100)',
+    placeholderValue: 'Enter target (e.g. 10 or 500000)'
+  }
+};
+
+const t = i18n[lang] || i18n['ko'];
+---
+
+<div class="tool-target-price">
+  <div class="calculator-container">
+    <div class="input-section">
+      <div class="input-group-wrapper">
+        <h3>{t.title}</h3>
+        
+        <div class="input-group-row">
+          <div class="input-group half">
+            <label for="target-current-price">{t.currentPrice}</label>
+            <input type="number" id="target-current-price" placeholder={t.placeholderPrice} min="0" step="any" />
+          </div>
+          <div class="input-group half">
+            <label for="target-qty">{t.quantity}</label>
+            <input type="number" id="target-qty" placeholder={t.placeholderQty} min="1" />
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label>{t.targetType}</label>
+          <div class="toggle-buttons">
+            <button type="button" id="target-type-yield" class="toggle-btn active">{t.targetYield}</button>
+            <button type="button" id="target-type-profit" class="toggle-btn">{t.targetProfit}</button>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label for="target-val" id="target-val-label">{t.targetYield}</label>
+          <input type="number" id="target-val" placeholder={t.placeholderValue} min="0" step="any" />
+        </div>
+
+        <div class="input-group-row" style="margin-top: 1rem;">
+          <div class="input-group third">
+            <label for="target-buy-fee">{t.buyFee}</label>
+            <input type="number" id="target-buy-fee" value="0.015" min="0" max="5" step="0.001" />
+          </div>
+          <div class="input-group third">
+            <label for="target-sell-fee">{t.sellFee}</label>
+            <input type="number" id="target-sell-fee" value="0.015" min="0" max="5" step="0.001" />
+          </div>
+          <div class="input-group third">
+            <label for="target-sell-tax">{t.sellTax}</label>
+            <input type="number" id="target-sell-tax" value="0.20" min="0" max="5" step="0.01" />
+          </div>
+        </div>
+      </div>
+
+      <div class="action-buttons">
+        <button id="calc-btn" class="btn-primary">{t.calculate}</button>
+        <button id="clear-btn" class="btn-secondary">{t.clear}</button>
+      </div>
+    </div>
+
+    <!-- 결과 영역 -->
+    <div class="result-section">
+      <h3>{t.results}</h3>
+      
+      <div class="result-box highlighted">
+        <span class="result-label">{t.targetPrice}</span>
+        <span class="result-value accent" id="res-target-price">0 원</span>
+      </div>
+
+      <div class="tax-detail-list">
+        <div class="detail-item">
+          <span>{t.totalCost}</span>
+          <span id="res-total-cost">0 원</span>
+        </div>
+        <div class="detail-item">
+          <span>{t.totalRevenue}</span>
+          <span id="res-total-revenue">0 원</span>
+        </div>
+        <div class="detail-item">
+          <span>{t.feesAndTaxes}</span>
+          <span id="res-fees-taxes">0 원</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .tool-target-price {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .calculator-container {
+    max-width: 600px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .input-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .input-group-wrapper {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+  }
+
+  h3 {
+    margin: 0 0 1.25rem 0;
+    font-size: 1.125rem;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.75rem;
+  }
+
+  .input-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1.25rem;
+  }
+
+  .input-group:last-child {
+    margin-bottom: 0;
+  }
+
+  .input-group-row {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .input-group.half {
+    flex: 1;
+    margin-bottom: 0;
+  }
+
+  .input-group.third {
+    flex: 1;
+    margin-bottom: 0;
+  }
+
+  label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+  }
+
+  input[type="number"], select {
+    width: 100%;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius);
+    font-size: 1rem;
+    transition: all 0.2s;
+  }
+
+  input[type="number"]:focus, select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+  }
+
+  .toggle-buttons {
+    display: flex;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.25rem;
+  }
+
+  .toggle-btn {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    border-radius: calc(var(--radius) - 2px);
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+
+  .toggle-btn.active {
+    background: var(--accent);
+    color: #000;
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    padding: 0.875rem;
+    border-radius: var(--radius);
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.2s;
+    flex: 1;
+    cursor: pointer;
+  }
+
+  .btn-primary:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    padding: 0.875rem;
+    border-radius: var(--radius);
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.2s;
+    flex: 1;
+    cursor: pointer;
+  }
+
+  .btn-secondary:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+
+  .result-section {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .result-box {
+    background: var(--bg-hover);
+    padding: 1.25rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .result-box.highlighted {
+    background: rgba(0, 220, 130, 0.03);
+    border-color: rgba(0, 220, 130, 0.2);
+  }
+
+  .result-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+  }
+
+  .result-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    word-break: break-all;
+  }
+
+  .result-value.accent {
+    color: var(--accent);
+  }
+
+  .tax-detail-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+    border-top: 1px dashed var(--border);
+    border-bottom: 1px dashed var(--border);
+  }
+
+  .detail-item {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+  }
+
+  .detail-item span:last-child {
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // Inputs
+    const currentPriceInput = document.getElementById('target-current-price') as HTMLInputElement;
+    const qtyInput = document.getElementById('target-qty') as HTMLInputElement;
+    const targetValInput = document.getElementById('target-val') as HTMLInputElement;
+
+    const buyFeeInput = document.getElementById('target-buy-fee') as HTMLInputElement;
+    const sellFeeInput = document.getElementById('target-sell-fee') as HTMLInputElement;
+    const taxRateInput = document.getElementById('target-sell-tax') as HTMLInputElement;
+
+    // Toggle states
+    const typeYieldBtn = document.getElementById('target-type-yield');
+    const typeProfitBtn = document.getElementById('target-type-profit');
+    const targetValLabel = document.getElementById('target-val-label');
+    let isProfitType = false;
+
+    // Outputs
+    const resTargetPrice = document.getElementById('res-target-price');
+    const resTotalCost = document.getElementById('res-total-cost');
+    const resTotalRevenue = document.getElementById('res-total-revenue');
+    const resFeesTaxes = document.getElementById('res-fees-taxes');
+
+    // Buttons
+    const calcBtn = document.getElementById('calc-btn');
+    const clearBtn = document.getElementById('clear-btn');
+
+    const formatNumber = (num: number, unit = '') => {
+      return new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(num) + unit;
+    };
+
+    const isKo = document.documentElement.lang === 'ko';
+
+    // Type toggling
+    if (typeYieldBtn && typeProfitBtn && targetValLabel) {
+      typeYieldBtn.addEventListener('click', () => {
+        isProfitType = false;
+        typeYieldBtn.classList.add('active');
+        typeProfitBtn.classList.remove('active');
+        targetValLabel.textContent = isKo ? '목표 수익률 (%)' : 'Target Yield (%)';
+      });
+      typeProfitBtn.addEventListener('click', () => {
+        isProfitType = true;
+        typeProfitBtn.classList.add('active');
+        typeYieldBtn.classList.remove('active');
+        targetValLabel.textContent = isKo ? '목표 수익금액 (원)' : 'Target Profit (KRW)';
+      });
+    }
+
+    const calculate = () => {
+      const currentPrice = parseFloat(currentPriceInput.value) || 0;
+      const qty = parseFloat(qtyInput.value) || 0;
+      const targetVal = parseFloat(targetValInput.value) || 0;
+
+      const buyFeeRate = (parseFloat(buyFeeInput.value) || 0) / 100;
+      const sellFeeRate = (parseFloat(sellFeeInput.value) || 0) / 100;
+      const taxRate = (parseFloat(taxRateInput.value) || 0) / 100;
+
+      if (currentPrice <= 0 || qty <= 0 || targetVal <= 0) return;
+
+      // 1. Total buying cost including buying fee
+      const grossBuy = currentPrice * qty;
+      const buyFee = Math.floor(grossBuy * buyFeeRate);
+      const totalCost = grossBuy + buyFee;
+
+      // 2. Determine target net revenue
+      let targetNetRevenue = 0;
+      if (isProfitType) {
+        targetNetRevenue = totalCost + targetVal;
+      } else {
+        targetNetRevenue = totalCost * (1 + targetVal / 100);
+      }
+
+      // 3. Solve for target selling price
+      // Net Revenue = P_sell * Q * (1 - f_sell - t_tax)
+      // P_sell = Net Revenue / (Q * (1 - f_sell - t_tax))
+      const sellFactor = 1 - sellFeeRate - taxRate;
+      const targetPrice = targetNetRevenue / (qty * sellFactor);
+
+      // Surcharges details
+      const grossSell = targetPrice * qty;
+      const sellFee = Math.floor(grossSell * sellFeeRate);
+      const sellTax = Math.floor(grossSell * taxRate);
+      const totalSurcharges = buyFee + sellFee + sellTax;
+
+      const unitWon = isKo ? ' 원' : ' KRW';
+
+      if (resTargetPrice) resTargetPrice.textContent = formatNumber(targetPrice, unitWon);
+      if (resTotalCost) resTotalCost.textContent = formatNumber(totalCost, unitWon);
+      if (resTotalRevenue) resTotalRevenue.textContent = formatNumber(grossSell, unitWon);
+      if (resFeesTaxes) resFeesTaxes.textContent = formatNumber(totalSurcharges, unitWon);
+    };
+
+    const clear = () => {
+      currentPriceInput.value = '';
+      qtyInput.value = '';
+      targetValInput.value = '';
+      
+      buyFeeInput.value = '0.015';
+      sellFeeInput.value = '0.015';
+      taxRateInput.value = '0.20';
+
+      isProfitType = false;
+      typeYieldBtn?.classList.add('active');
+      typeProfitBtn?.classList.remove('active');
+      if (targetValLabel) {
+        targetValLabel.textContent = isKo ? '목표 수익률 (%)' : 'Target Yield (%)';
+      }
+
+      if (resTargetPrice) resTargetPrice.textContent = '0 원';
+      if (resTotalCost) resTotalCost.textContent = '0 원';
+      if (resTotalRevenue) resTotalRevenue.textContent = '0 원';
+      if (resFeesTaxes) resFeesTaxes.textContent = '0 원';
+    };
+
+    if (calcBtn) calcBtn.addEventListener('click', calculate);
+    if (clearBtn) clearBtn.addEventListener('click', clear);
+
+    // Enter key support
+    const inputs = [currentPriceInput, qtyInput, targetValInput, buyFeeInput, sellFeeInput, taxRateInput];
+    inputs.forEach(input => {
+      if (input) {
+        input.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') {
+            calculate();
+          }
+        });
+      }
+    });
+  });
+</script>

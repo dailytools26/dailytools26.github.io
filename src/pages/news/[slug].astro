@@ -1,0 +1,261 @@
+---
+import { getCollection, render } from 'astro:content';
+import Layout from '../../layouts/Layout.astro';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('news', ({ data }) => data.lang === 'ko');
+  return posts.map(post => ({
+    params: { slug: post.id },
+    props: { post },
+  }));
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+
+const title = post.data.title;
+const description = post.data.description;
+const keywords = post.data.tags;
+
+const formatDate = (date: Date) => {
+  return new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }).format(date);
+};
+---
+
+<Layout title={title} description={description} keywords={keywords}>
+  <div class="container article-container">
+    <div class="back-link-wrapper">
+      <a href="/news" class="back-btn">
+        <span>&larr;</span> 목록으로 돌아가기
+      </a>
+    </div>
+
+    <article class="article-card">
+      <header class="article-header">
+        <div class="article-meta">
+          <time datetime={post.data.pubDate.toISOString()}>{formatDate(post.data.pubDate)}</time>
+          {post.data.featured && <span class="featured-badge">Featured</span>}
+        </div>
+        
+        <h1>{post.data.title}</h1>
+        
+        <div class="article-tags">
+          {post.data.tags?.map(tag => (
+            <span class="tag">#{tag}</span>
+          ))}
+        </div>
+      </header>
+
+      <hr class="article-divider" />
+
+      <div class="prose">
+        <Content />
+      </div>
+    </article>
+  </div>
+</Layout>
+
+<style>
+  .article-container {
+    padding-top: 2rem;
+    padding-bottom: 5rem;
+    max-width: 800px;
+  }
+
+  .back-link-wrapper {
+    margin-bottom: 1.5rem;
+  }
+
+  .back-btn {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    transition: color 0.2s ease;
+  }
+
+  .back-btn:hover {
+    color: var(--accent);
+  }
+
+  .article-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 2rem 1.5rem;
+  }
+
+  @media (min-width: 768px) {
+    .article-card {
+      padding: 3rem;
+    }
+  }
+
+  .article-header {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .article-meta {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .article-meta time {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  .featured-badge {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    color: #000;
+    background: var(--accent);
+    padding: 0.125rem 0.5rem;
+    border-radius: 4px;
+    text-transform: uppercase;
+  }
+
+  .article-header h1 {
+    font-size: clamp(1.75rem, 4vw, 2.5rem);
+    font-weight: 800;
+    margin: 0;
+    line-height: 1.25;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+  }
+
+  .article-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .tag {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    background: var(--bg-hover);
+    padding: 0.25rem 0.625rem;
+    border-radius: 9999px;
+  }
+
+  .article-divider {
+    border: 0;
+    height: 1px;
+    background: var(--border);
+    margin: 2rem 0;
+  }
+
+  /* 마크다운 렌더링 스타일 (prose) */
+  .prose {
+    font-size: 1rem;
+    line-height: 1.75;
+    color: var(--text-secondary);
+  }
+
+  .prose :global(h2) {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 2rem 0 1rem;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.5rem;
+  }
+
+  .prose :global(h3) {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 1.5rem 0 1rem;
+    color: var(--text-primary);
+  }
+
+  .prose :global(p) {
+    margin: 0 0 1.25rem 0;
+  }
+
+  .prose :global(ul), .prose :global(ol) {
+    margin: 0 0 1.25rem 0;
+    padding-left: 1.5rem;
+  }
+
+  .prose :global(li) {
+    margin-bottom: 0.375rem;
+  }
+
+  .prose :global(strong) {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+
+  .prose :global(a) {
+    color: var(--accent);
+    text-decoration: underline;
+    transition: color 0.2s ease;
+  }
+
+  .prose :global(a:hover) {
+    color: var(--accent-hover);
+  }
+
+  .prose :global(table) {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+    font-size: 0.875rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .prose :global(th), .prose :global(td) {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .prose :global(th) {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    font-weight: 600;
+    text-align: left;
+  }
+
+  .prose :global(td) {
+    color: var(--text-secondary);
+  }
+
+  .prose :global(tr:last-child td) {
+    border-bottom: none;
+  }
+
+  .prose :global(code) {
+    font-family: monospace;
+    font-size: 0.875rem;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    padding: 0.125rem 0.375rem;
+    border-radius: 4px;
+    color: var(--text-primary);
+  }
+
+  .prose :global(pre) {
+    background: var(--bg-primary) !important;
+    border: 1px solid var(--border);
+    padding: 1rem;
+    border-radius: var(--radius);
+    overflow-x: auto;
+    margin: 1.5rem 0;
+  }
+
+  .prose :global(pre code) {
+    background: transparent;
+    border: none;
+    padding: 0;
+    color: inherit;
+    font-size: 0.875rem;
+  }
+</style>

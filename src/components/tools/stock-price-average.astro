@@ -1,0 +1,414 @@
+---
+import { getLangFromUrl } from '../../i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+
+const i18n = {
+  ko: {
+    title: '다중 매수 평단가 계산기',
+    addRow: '매수 행 추가',
+    deleteRow: '삭제',
+    price: '매입 단가 (원)',
+    qty: '매입 수량',
+    calculate: '계산하기',
+    clear: '초기화',
+    results: '합산 결과',
+    avgPrice: '최종 평균 단가',
+    totalQty: '총 매수 수량',
+    totalAmount: '총 투자 금액',
+    placeholderPrice: '단가 (예: 50000)',
+    placeholderQty: '수량 (예: 10)'
+  },
+  en: {
+    title: 'Multi-Buy Stock Average Calculator',
+    addRow: 'Add Buy Row',
+    deleteRow: 'Delete',
+    price: 'Buy Price (KRW)',
+    qty: 'Quantity',
+    calculate: 'Calculate',
+    clear: 'Clear',
+    results: 'Consolidated Results',
+    avgPrice: 'Final Average Price',
+    totalQty: 'Total Shares',
+    totalAmount: 'Total Investment',
+    placeholderPrice: 'Price (e.g. 50000)',
+    placeholderQty: 'Qty (e.g. 10)'
+  }
+};
+
+const t = i18n[lang] || i18n['ko'];
+---
+
+<div class="tool-price-average">
+  <div class="calculator-grid">
+    <!-- 입력 영역 -->
+    <div class="input-section">
+      <div class="input-group-wrapper">
+        <h3>{t.title}</h3>
+        
+        <div class="rows-container" id="rows-list">
+          <!-- Dynamic rows inserted here -->
+          <div class="buy-row" data-index="0">
+            <div class="row-input">
+              <label>{t.price}</label>
+              <input type="number" class="row-price" placeholder={t.placeholderPrice} min="0" step="any" />
+            </div>
+            <div class="row-input">
+              <label>{t.qty}</label>
+              <input type="number" class="row-qty" placeholder={t.placeholderQty} min="0" step="any" />
+            </div>
+            <button type="button" class="del-row-btn" style="visibility: hidden;">&times;</button>
+          </div>
+        </div>
+
+        <button type="button" id="add-row-btn" class="btn-secondary add-btn">{t.addRow}</button>
+      </div>
+
+      <div class="action-buttons">
+        <button id="calc-btn" class="btn-primary">{t.calculate}</button>
+        <button id="clear-btn" class="btn-secondary">{t.clear}</button>
+      </div>
+    </div>
+
+    <!-- 결과 영역 -->
+    <div class="result-section">
+      <h3>{t.results}</h3>
+      
+      <div class="result-box highlighted">
+        <span class="result-label">{t.avgPrice}</span>
+        <span class="result-value accent" id="res-avg-price">0 원</span>
+      </div>
+
+      <div class="result-box">
+        <span class="result-label">{t.totalQty}</span>
+        <span class="result-value" id="res-total-qty">0</span>
+      </div>
+
+      <div class="result-box">
+        <span class="result-label">{t.totalAmount}</span>
+        <span class="result-value" id="res-total-amount">0 원</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .tool-price-average {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .calculator-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  @media (min-width: 768px) {
+    .calculator-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .input-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .input-group-wrapper {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.125rem;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.75rem;
+  }
+
+  .rows-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .buy-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.75rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px dashed var(--border);
+  }
+
+  .buy-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .row-input {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+  }
+
+  .row-input label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+  }
+
+  input {
+    width: 100%;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 0.625rem 0.875rem;
+    border-radius: var(--radius);
+    font-size: 0.9375rem;
+    transition: all 0.2s;
+  }
+
+  input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+  }
+
+  .del-row-btn {
+    background: rgba(239, 68, 68, 0.1);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    font-size: 1.25rem;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    line-height: 1;
+    padding: 0;
+  }
+
+  .del-row-btn:hover {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ffffff;
+  }
+
+  .add-btn {
+    align-self: flex-start;
+    padding: 0.5rem 1rem;
+    font-size: 0.8125rem;
+    margin-top: 0.5rem;
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    padding: 0.875rem;
+    border-radius: var(--radius);
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.2s;
+    flex: 1;
+    cursor: pointer;
+  }
+
+  .btn-primary:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    padding: 0.875rem;
+    border-radius: var(--radius);
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.2s;
+    flex: 1;
+    cursor: pointer;
+  }
+
+  .btn-secondary:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+
+  .result-section {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .result-box {
+    background: var(--bg-hover);
+    padding: 1.25rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .result-box.highlighted {
+    background: rgba(0, 220, 130, 0.03);
+    border-color: rgba(0, 220, 130, 0.2);
+  }
+
+  .result-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+  }
+
+  .result-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    word-break: break-all;
+  }
+
+  .result-value.accent {
+    color: var(--accent);
+  }
+
+  .danger-text {
+    color: #ef4444;
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const rowsList = document.getElementById('rows-list');
+    const addRowBtn = document.getElementById('add-row-btn');
+    const calcBtn = document.getElementById('calc-btn');
+    const clearBtn = document.getElementById('clear-btn');
+
+    // Outputs
+    const resAvgPrice = document.getElementById('res-avg-price');
+    const resTotalQty = document.getElementById('res-total-qty');
+    const resTotalAmount = document.getElementById('res-total-amount');
+
+    const formatNumber = (num: number, unit = '') => {
+      return new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(num) + unit;
+    };
+
+    let rowCount = 1;
+
+    // Toggle delete button visibility based on row count
+    const updateDelButtons = () => {
+      if (!rowsList) return;
+      const rows = rowsList.querySelectorAll('.buy-row');
+      rows.forEach((row) => {
+        const btn = row.querySelector('.del-row-btn') as HTMLElement;
+        if (btn) {
+          btn.style.visibility = rows.length > 1 ? 'visible' : 'hidden';
+        }
+      });
+    };
+
+    const addRow = () => {
+      if (!rowsList) return;
+
+      const newRow = document.createElement('div');
+      newRow.className = 'buy-row';
+      newRow.setAttribute('data-index', rowCount.toString());
+
+      const isKo = document.documentElement.lang === 'ko';
+      const labelPrice = isKo ? '매입 단가 (원)' : 'Buy Price (KRW)';
+      const labelQty = isKo ? '매입 수량' : 'Quantity';
+      const placeholderPrice = isKo ? '단가 (예: 50000)' : 'Price (e.g. 50000)';
+      const placeholderQty = isKo ? '수량 (예: 10)' : 'Qty (e.g. 10)';
+
+      newRow.innerHTML = `
+        <div class="row-input">
+          <label>${labelPrice}</label>
+          <input type="number" class="row-price" placeholder="${placeholderPrice}" min="0" step="any" />
+        </div>
+        <div class="row-input">
+          <label>${labelQty}</label>
+          <input type="number" class="row-qty" placeholder="${placeholderQty}" min="0" step="any" />
+        </div>
+        <button type="button" class="del-row-btn">&times;</button>
+      `;
+
+      rowsList.appendChild(newRow);
+      rowCount++;
+      updateDelButtons();
+
+      // Add delete listener to the new button
+      const delBtn = newRow.querySelector('.del-row-btn');
+      delBtn?.addEventListener('click', () => {
+        newRow.remove();
+        updateDelButtons();
+      });
+    };
+
+    // Initialize first row's delete button
+    updateDelButtons();
+
+    addRowBtn?.addEventListener('click', addRow);
+
+    const calculate = () => {
+      if (!rowsList) return;
+      const rows = rowsList.querySelectorAll('.buy-row');
+      let totalQty = 0;
+      let totalAmount = 0;
+
+      rows.forEach(row => {
+        const priceInput = row.querySelector('.row-price') as HTMLInputElement;
+        const qtyInput = row.querySelector('.row-qty') as HTMLInputElement;
+
+        const price = parseFloat(priceInput.value) || 0;
+        const qty = parseFloat(qtyInput.value) || 0;
+
+        totalQty += qty;
+        totalAmount += (price * qty);
+      });
+
+      const avgPrice = totalQty > 0 ? (totalAmount / totalQty) : 0;
+
+      const isKo = document.documentElement.lang === 'ko';
+      const unitWon = isKo ? ' 원' : ' KRW';
+
+      if (resAvgPrice) resAvgPrice.textContent = formatNumber(avgPrice, unitWon);
+      if (resTotalQty) resTotalQty.textContent = formatNumber(totalQty);
+      if (resTotalAmount) resTotalAmount.textContent = formatNumber(totalAmount, unitWon);
+    };
+
+    const clear = () => {
+      if (!rowsList) return;
+      rowsList.innerHTML = '';
+      rowCount = 0;
+      addRow(); // Add back the first row
+      
+      if (resAvgPrice) resAvgPrice.textContent = '0 원';
+      if (resTotalQty) resTotalQty.textContent = '0';
+      if (resTotalAmount) resTotalAmount.textContent = '0 원';
+    };
+
+    if (calcBtn) calcBtn.addEventListener('click', calculate);
+    if (clearBtn) clearBtn.addEventListener('click', clear);
+  });
+</script>

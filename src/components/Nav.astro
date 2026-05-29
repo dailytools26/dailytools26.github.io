@@ -1,82 +1,213 @@
 ---
-import { getLangFromUrl, useTranslations, useTranslatedPath } from '../i18n/utils';
-import { languages } from '../i18n/ui';
+import {
+  getLangFromUrl,
+  useTranslations,
+  useTranslatedPath,
+} from "../i18n/utils";
+import ThemeToggle from "./ThemeToggle.astro";
+import { getCollection } from "astro:content";
 
 const lang = getLangFromUrl(Astro.url);
 const t = useTranslations(lang);
 const translatePath = useTranslatedPath(lang);
 
-// 현재 경로에서 언어 부분을 제외한 경로를 구함
-const currentPath = Astro.url.pathname;
-const pathWithoutLang = currentPath.replace(new RegExp(`^/(${Object.keys(languages).join('|')})/?`), '/') || '/';
+// 문서 컬렉션 가져오기 + 정렬
+const allDocs = await getCollection("docs");
+const categoryOrder: Record<string, number> = { tax: 1, "real-estate": 2, stock: 3 };
 
-const navItems = [
-  { href: translatePath('/'), label: t('nav.home') },
-  { href: 'https://github.com/dailytools26/dailytools26.github.io', label: t('nav.github'), external: true },
+const sortedDocs = allDocs.sort((a, b) => {
+  if (a.data.category !== b.data.category) {
+    return (categoryOrder[a.data.category] || 99) - (categoryOrder[b.data.category] || 99);
+  }
+  return a.data.order - b.data.order;
+});
+
+type DocItem = (typeof allDocs)[number];
+const groupedDocs: Array<{ slug: string; label: string; items: DocItem[] }> = [];
+sortedDocs.forEach((d) => {
+  let cat = groupedDocs.find((c) => c.slug === d.data.category);
+  if (!cat) {
+    cat = { slug: d.data.category, label: d.data.categoryLabel, items: [] };
+    groupedDocs.push(cat);
+  }
+  cat.items.push(d);
+});
+
+const categoryIcons: Record<string, string> = {
+  tax: "📋",
+  "real-estate": "🏠",
+  stock: "📈",
+};
+
+interface NavItem {
+  href: string;
+  label: string;
+  external?: boolean;
+}
+
+const navItems: NavItem[] = [
+  { href: translatePath("/"), label: t("nav.home") },
+  { href: translatePath("/news"), label: t("nav.news") },
 ];
 ---
 
 <header class="header">
   <div class="container nav-container">
-    <a href={translatePath('/')} class="logo">
+    <a href={translatePath("/")} class="logo">
       <span class="logo-icon">🛠️</span>
-      <span class="logo-text">DailyTools<span class="text-gradient">26</span></span>
+      <span class="logo-text"
+        >DailyTools<span class="text-gradient">26</span></span
+      >
     </a>
 
     <nav class="nav-links">
-      {navItems.map(item => (
-        <a href={item.href} class="nav-link" target={item.external ? '_blank' : '_self'} rel={item.external ? 'noopener noreferrer' : ''}>
-          {item.label}
+      {
+        navItems.map((item) => (
+          <a
+            href={item.href}
+            class="nav-link"
+            target={item.external ? "_blank" : "_self"}
+            rel={item.external ? "noopener noreferrer" : ""}
+          >
+            {item.label}
+          </a>
+        ))
+      }
+
+      <!-- 문서 드롭다운 -->
+      <div class="nav-dropdown">
+        <a href={translatePath("/docs")} class="nav-link nav-dropdown-trigger">
+          {t("nav.docs")}
+          <svg class="dropdown-arrow" width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d="M2 4L6 8L10 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
         </a>
-      ))}
-      
-      <div class="lang-switcher">
-        <select onchange="window.location.href=this.value" aria-label="Language selector">
-          {Object.entries(languages).map(([code, label]) => (
-            <option value={translatePath(pathWithoutLang, code)} selected={code === lang}>
-              {label}
-            </option>
-          ))}
-        </select>
+
+        <div class="dropdown-panel">
+          <div class="dropdown-inner">
+            <div class="dropdown-header">
+              <a href={translatePath("/docs")} class="dropdown-all-link">
+                전체 문서 보기 <span class="arrow-right">→</span>
+              </a>
+            </div>
+
+            <div class="dropdown-categories">
+              {groupedDocs.map((cat) => (
+                <div class="dropdown-category">
+                  <div class="dropdown-category-title">
+                    <span>{categoryIcons[cat.slug] || "📄"}</span>
+                    {cat.label}
+                  </div>
+                  <ul class="dropdown-list">
+                    {cat.items.map((doc) => (
+                      <li>
+                        <a href={`/docs/${doc.id}`} class="dropdown-item">
+                          {doc.data.shortTitle}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
+
+      <ThemeToggle />
     </nav>
+
+    <!-- 모바일 햄버거 버튼 -->
+    <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="메뉴 열기">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+        <path d="M3 6h16M3 11h16M3 16h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- 모바일 메뉴 패널 -->
+  <div class="mobile-menu" id="mobile-menu">
+    <div class="mobile-menu-inner">
+      {navItems.map((item) => (
+        <a href={item.href} class="mobile-nav-link">{item.label}</a>
+      ))}
+
+      <!-- 모바일 문서 섹션 -->
+      <div class="mobile-docs-section">
+        <div class="mobile-section-header">
+          <a href={translatePath("/docs")} class="mobile-nav-link mobile-docs-title">
+            {t("nav.docs")}
+          </a>
+        </div>
+        {groupedDocs.map((cat) => (
+          <div class="mobile-category">
+            <div class="mobile-category-label">
+              {categoryIcons[cat.slug] || "📄"} {cat.label}
+            </div>
+            {cat.items.map((doc) => (
+              <a href={`/docs/${doc.id}`} class="mobile-doc-link">
+                {doc.data.shortTitle}
+              </a>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
   </div>
 </header>
+
+<script>
+  const btn = document.getElementById("mobile-menu-btn");
+  const menu = document.getElementById("mobile-menu");
+  btn?.addEventListener("click", () => {
+    menu?.classList.toggle("open");
+  });
+  // 외부 클릭 시 닫기
+  document.addEventListener("click", (e) => {
+    if (!btn?.contains(e.target as Node) && !menu?.contains(e.target as Node)) {
+      menu?.classList.remove("open");
+    }
+  });
+</script>
 
 <style>
   .header {
     height: 64px;
     border-bottom: 1px solid var(--border);
-    background-color: rgba(2, 4, 32, 0.8);
+    background-color: var(--bg-header);
     backdrop-filter: blur(12px);
     position: sticky;
     top: 0;
     z-index: 50;
   }
-  
+
   .nav-container {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    height: 100%;
+    height: 64px;
+    position: relative;
   }
 
+  /* ── 로고 ── */
   .logo {
     display: flex;
     align-items: center;
     gap: 0.5rem;
     font-weight: 700;
     font-size: 1.25rem;
+    flex-shrink: 0;
   }
-  
-  .logo-icon {
-    font-size: 1.5rem;
-  }
+  .logo-icon { font-size: 1.5rem; }
 
+  /* ── 데스크톱 nav ── */
   .nav-links {
-    display: flex;
+    display: none;
     align-items: center;
-    gap: 1.5rem;
+    gap: 0.25rem;
+  }
+  @media (min-width: 768px) {
+    .nav-links { display: flex; }
   }
 
   .nav-link {
@@ -84,23 +215,215 @@ const navItems = [
     color: var(--text-secondary);
     transition: color 0.2s;
     font-weight: 500;
+    padding: 0.375rem 0.625rem;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+  .nav-link:hover { color: var(--text-primary); }
+
+  /* ── 드롭다운 ── */
+  .nav-dropdown {
+    position: relative;
   }
 
-  .nav-link:hover {
-    color: var(--text-primary);
-  }
-
-  .lang-switcher select {
-    background-color: var(--bg-card);
-    color: var(--text-primary);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 0.25rem 0.5rem;
-    font-size: 0.875rem;
+  .nav-dropdown-trigger {
     cursor: pointer;
+    user-select: none;
   }
-  
-  .lang-switcher select:hover {
-    border-color: var(--border-hover);
+
+  .dropdown-arrow {
+    opacity: 0.6;
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+  }
+
+  .nav-dropdown:hover .dropdown-arrow {
+    transform: rotate(180deg);
+  }
+
+  .dropdown-panel {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: -8px;
+    width: 540px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.18);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-6px);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+  }
+
+  .nav-dropdown:hover .dropdown-panel {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  .dropdown-inner {
+    padding: 1.25rem;
+  }
+
+  .dropdown-header {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-bottom: 0.875rem;
+    margin-bottom: 0.875rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .dropdown-all-link {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--accent);
+    transition: opacity 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+  .dropdown-all-link:hover { opacity: 0.75; }
+  .arrow-right { transition: transform 0.2s ease; }
+  .dropdown-all-link:hover .arrow-right { transform: translateX(3px); }
+
+  .dropdown-categories {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+  }
+
+  .dropdown-category-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-muted, var(--text-secondary));
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .dropdown-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+  }
+
+  .dropdown-item {
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+    padding: 0.3rem 0.5rem;
+    border-radius: 6px;
+    display: block;
+    transition: all 0.15s ease;
+    line-height: 1.4;
+  }
+
+  .dropdown-item:hover {
+    background: var(--bg-hover, rgba(0,0,0,0.05));
+    color: var(--accent);
+    padding-left: 0.75rem;
+  }
+
+  /* ── 모바일 햄버거 ── */
+  .mobile-menu-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    padding: 0.375rem;
+    border-radius: 6px;
+    transition: background 0.15s;
+  }
+  .mobile-menu-btn:hover { background: var(--bg-hover, rgba(0,0,0,0.05)); }
+
+  @media (min-width: 768px) {
+    .mobile-menu-btn { display: none; }
+  }
+
+  /* ── 모바일 메뉴 패널 ── */
+  .mobile-menu {
+    display: none;
+    background: var(--bg-card);
+    border-top: 1px solid var(--border);
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+  }
+
+  @media (max-width: 767px) {
+    .mobile-menu { display: block; }
+    .mobile-menu.open { max-height: 80vh; overflow-y: auto; }
+  }
+
+  .mobile-menu-inner {
+    padding: 1rem 1.25rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+  }
+
+  .mobile-nav-link {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    padding: 0.625rem 0.5rem;
+    border-radius: 6px;
+    display: block;
+    transition: background 0.15s;
+  }
+  .mobile-nav-link:hover { background: var(--bg-hover, rgba(0,0,0,0.05)); }
+
+  .mobile-docs-section {
+    border-top: 1px solid var(--border);
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+  }
+
+  .mobile-docs-title {
+    color: var(--accent);
+    font-size: 0.9375rem;
+  }
+
+  .mobile-category {
+    margin-top: 0.75rem;
+    padding-left: 0.5rem;
+  }
+
+  .mobile-category-label {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    color: var(--text-muted, var(--text-secondary));
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 0.25rem 0.5rem;
+  }
+
+  .mobile-doc-link {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+    padding: 0.375rem 0.75rem;
+    border-radius: 6px;
+    display: block;
+    transition: all 0.15s;
+  }
+  .mobile-doc-link:hover {
+    background: var(--bg-hover, rgba(0,0,0,0.05));
+    color: var(--accent);
   }
 </style>

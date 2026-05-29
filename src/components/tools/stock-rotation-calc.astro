@@ -1,0 +1,481 @@
+---
+import { getLangFromUrl } from '../../i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+
+const i18n = {
+  ko: {
+    title: '주식 순환매 시뮬레이터',
+    stockATitle: '매도 종목 (종목 A)',
+    stockBTitle: '매수 종목 (종목 B)',
+    avgPrice: '보유 평단가 (원)',
+    quantity: '보유 수량',
+    sellPrice: '매도 예정가 (원)',
+    buyPrice: '매수 예정가 (원)',
+    stockBOwned: '기존 종목 B 보유 현황 (선택사항)',
+    calculate: '교체 매수 시뮬레이션',
+    clear: '초기화',
+    results: '시뮬레이션 예상 결과',
+    stockAResults: '종목 A 매도 정산',
+    stockBResults: '종목 B 매수 정산',
+    realizedProfit: '종목 A 실현 손익',
+    netRevenue: '종목 A 매도 실수령액',
+    additionalShares: '종목 B 신규 매수 수량',
+    finalShares: '종목 B 최종 보유 수량',
+    finalAvgPrice: '종목 B 최종 평균 단가',
+    remainingCash: '거래 후 남는 예수금',
+    placeholderPrice: '단가 입력',
+    placeholderQty: '수량 입력'
+  },
+  en: {
+    title: 'Stock Rotation Simulator',
+    stockATitle: 'Sell Target (Stock A)',
+    stockBTitle: 'Buy Target (Stock B)',
+    avgPrice: 'Avg Purchase Price (KRW)',
+    quantity: 'Quantity Owned',
+    sellPrice: 'Target Selling Price (KRW)',
+    buyPrice: 'Target Buy Price (KRW)',
+    stockBOwned: 'Current Stock B Holdings (Optional)',
+    calculate: 'Run Rotation Simulation',
+    clear: 'Clear',
+    results: 'Simulation Results',
+    stockAResults: 'Stock A Settlement',
+    stockBResults: 'Stock B Settlement',
+    realizedProfit: 'Stock A Realized Profit',
+    netRevenue: 'Stock A Net Cash Inflow',
+    additionalShares: 'Stock B Shares to Buy',
+    finalShares: 'Stock B Final Total Shares',
+    finalAvgPrice: 'Stock B Final Avg Price',
+    remainingCash: 'Remaining Cash Balance',
+    placeholderPrice: 'Enter price',
+    placeholderQty: 'Enter quantity'
+  }
+};
+
+const t = i18n[lang] || i18n['ko'];
+---
+
+<div class="tool-rotation-calc">
+  <div class="calculator-grid">
+    <!-- 입력 영역 -->
+    <div class="input-section">
+      <div class="input-group-wrapper">
+        <h3>{t.stockATitle}</h3>
+        <div class="input-group-row">
+          <div class="input-group half">
+            <label for="rot-a-avg">{t.avgPrice}</label>
+            <input type="number" id="rot-a-avg" placeholder={t.placeholderPrice} min="0" step="any" />
+          </div>
+          <div class="input-group half">
+            <label for="rot-a-qty">{t.quantity}</label>
+            <input type="number" id="rot-a-qty" placeholder={t.placeholderQty} min="1" />
+          </div>
+        </div>
+        <div class="input-group" style="margin-top: 1rem;">
+          <label for="rot-a-sell">{t.sellPrice}</label>
+          <input type="number" id="rot-a-sell" placeholder={t.placeholderPrice} min="0" step="any" />
+        </div>
+      </div>
+
+      <div class="input-group-wrapper">
+        <h3>{t.stockBTitle}</h3>
+        <div class="input-group">
+          <label for="rot-b-buy">{t.buyPrice}</label>
+          <input type="number" id="rot-b-buy" placeholder={t.placeholderPrice} min="0" step="any" />
+        </div>
+        
+        <h4 class="sub-section-title">{t.stockBOwned}</h4>
+        <div class="input-group-row">
+          <div class="input-group half">
+            <label for="rot-b-current-avg">{t.avgPrice}</label>
+            <input type="number" id="rot-b-current-avg" placeholder={t.placeholderPrice} min="0" step="any" value="0" />
+          </div>
+          <div class="input-group half">
+            <label for="rot-b-current-qty">{t.quantity}</label>
+            <input type="number" id="rot-b-current-qty" placeholder={t.placeholderQty} min="0" value="0" />
+          </div>
+        </div>
+      </div>
+
+      <div class="action-buttons">
+        <button id="calc-btn" class="btn-primary">{t.calculate}</button>
+        <button id="clear-btn" class="btn-secondary">{t.clear}</button>
+      </div>
+    </div>
+
+    <!-- 결과 영역 -->
+    <div class="result-section">
+      <h3>{t.results}</h3>
+      
+      <div class="result-category">
+        <h4>{t.stockAResults}</h4>
+        <div class="result-box-row">
+          <div class="result-box half highlighted">
+            <span class="result-label">{t.netRevenue}</span>
+            <span class="result-value accent" id="res-a-net-revenue" style="font-size: 1.25rem;">0 원</span>
+          </div>
+          <div class="result-box half">
+            <span class="result-label">{t.realizedProfit}</span>
+            <span class="result-value" id="res-a-profit" style="font-size: 1.25rem;">0 원</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="result-category" style="margin-top: 0.5rem;">
+        <h4>{t.stockBResults}</h4>
+        <div class="result-box highlighted">
+          <span class="result-label">{t.finalAvgPrice}</span>
+          <span class="result-value accent" id="res-b-final-avg">0 원</span>
+        </div>
+        <div class="result-box-row" style="margin-top: 0.75rem;">
+          <div class="result-box third">
+            <span class="result-label">{t.additionalShares}</span>
+            <span class="result-value" id="res-b-add-qty" style="font-size: 1.125rem;">0 주</span>
+          </div>
+          <div class="result-box third">
+            <span class="result-label">{t.finalShares}</span>
+            <span class="result-value" id="res-b-final-qty" style="font-size: 1.125rem;">0 주</span>
+          </div>
+          <div class="result-box third">
+            <span class="result-label">{t.remainingCash}</span>
+            <span class="result-value" id="res-remaining-cash" style="font-size: 1.125rem;">0 원</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .tool-rotation-calc {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .calculator-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  @media (min-width: 768px) {
+    .calculator-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .input-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .input-group-wrapper {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+  }
+
+  h3 {
+    margin: 0 0 1.25rem 0;
+    font-size: 1.125rem;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.75rem;
+  }
+
+  .sub-section-title {
+    margin: 1.25rem 0 0.75rem 0;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+  }
+
+  .input-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1.25rem;
+  }
+
+  .input-group:last-child {
+    margin-bottom: 0;
+  }
+
+  .input-group-row {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .input-group.half {
+    flex: 1;
+    margin-bottom: 0;
+  }
+
+  label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+  }
+
+  input[type="number"] {
+    width: 100%;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius);
+    font-size: 1rem;
+    transition: all 0.2s;
+  }
+
+  input[type="number"]:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    padding: 0.875rem;
+    border-radius: var(--radius);
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.2s;
+    flex: 1;
+    cursor: pointer;
+  }
+
+  .btn-primary:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    padding: 0.875rem;
+    border-radius: var(--radius);
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.2s;
+    flex: 1;
+    cursor: pointer;
+  }
+
+  .btn-secondary:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+
+  .result-section {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .result-category {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .result-category h4 {
+    margin: 0;
+    font-size: 0.9375rem;
+    color: var(--text-secondary);
+    border-left: 3px solid var(--accent);
+    padding-left: 0.5rem;
+  }
+
+  .result-box {
+    background: var(--bg-hover);
+    padding: 1rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .result-box.highlighted {
+    background: rgba(0, 220, 130, 0.03);
+    border-color: rgba(0, 220, 130, 0.2);
+  }
+
+  .result-box-row {
+    display: flex;
+    gap: 0.75rem;
+  }
+
+  .result-box.half {
+    flex: 1;
+  }
+
+  .result-box.third {
+    flex: 1;
+  }
+
+  .result-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.375rem;
+  }
+
+  .result-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    word-break: break-all;
+  }
+
+  .result-value.accent {
+    color: var(--accent);
+  }
+
+  .danger-text {
+    color: #ef4444;
+  }
+
+  .success-text {
+    color: var(--accent);
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // Inputs
+    const aAvgInput = document.getElementById('rot-a-avg') as HTMLInputElement;
+    const aQtyInput = document.getElementById('rot-a-qty') as HTMLInputElement;
+    const aSellInput = document.getElementById('rot-a-sell') as HTMLInputElement;
+
+    const bBuyInput = document.getElementById('rot-b-buy') as HTMLInputElement;
+    const bCurrentAvgInput = document.getElementById('rot-b-current-avg') as HTMLInputElement;
+    const bCurrentQtyInput = document.getElementById('rot-b-current-qty') as HTMLInputElement;
+
+    // Outputs
+    const resANetRevenue = document.getElementById('res-a-net-revenue');
+    const resAProfit = document.getElementById('res-a-profit');
+    
+    const resBFinalAvg = document.getElementById('res-b-final-avg');
+    const resBAddQty = document.getElementById('res-b-add-qty');
+    const resBFinalQty = document.getElementById('res-b-final-qty');
+    const resRemainingCash = document.getElementById('res-remaining-cash');
+
+    // Buttons
+    const calcBtn = document.getElementById('calc-btn');
+    const clearBtn = document.getElementById('clear-btn');
+
+    const formatNumber = (num: number, unit = '') => {
+      return new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(num) + unit;
+    };
+
+    const calculate = () => {
+      const aAvg = parseFloat(aAvgInput.value) || 0;
+      const aQty = parseFloat(aQtyInput.value) || 0;
+      const aSell = parseFloat(aSellInput.value) || 0;
+
+      const bBuy = parseFloat(bBuyInput.value) || 0;
+      const bCurrentAvg = parseFloat(bCurrentAvgInput.value) || 0;
+      const bCurrentQty = parseFloat(bCurrentQtyInput.value) || 0;
+
+      if (aAvg <= 0 || aQty <= 0 || aSell <= 0 || bBuy <= 0) return;
+
+      const isKo = document.documentElement.lang === 'ko';
+      const unitWon = isKo ? ' 원' : ' KRW';
+      const unitShares = isKo ? ' 주' : ' Shares';
+
+      // Fee details (using standard 0.015% buy/sell fee, 0.20% sell tax)
+      const buyFeeRate = 0.00015;
+      const sellFeeRate = 0.00015;
+      const sellTaxRate = 0.0020;
+
+      // 1. Stock A Sell calculation
+      const grossSaleA = aSell * QtyValue(aQty);
+      const sellFeeA = Math.floor(grossSaleA * sellFeeRate);
+      const sellTaxA = Math.floor(grossSaleA * sellTaxRate);
+      const netRevenueA = grossSaleA - sellFeeA - sellTaxA;
+
+      const costBasisA = aAvg * QtyValue(aQty) * (1 + buyFeeRate);
+      const profitA = netRevenueA - costBasisA;
+
+      // 2. Stock B Buy calculation
+      const effectiveCostB = bBuy * (1 + buyFeeRate);
+      const addSharesB = Math.floor(netRevenueA / effectiveCostB);
+      
+      const grossPurchaseB = addSharesB * bBuy;
+      const buyFeeB = Math.floor(grossPurchaseB * buyFeeRate);
+      const totalOutflowB = grossPurchaseB + buyFeeB;
+
+      const remainingCash = netRevenueA - totalOutflowB;
+
+      // 3. Stock B Consolidated Averages
+      const finalQtyB = bCurrentQty + addSharesB;
+      let finalAvgPriceB = bBuy;
+      if (bCurrentQty > 0) {
+        finalAvgPriceB = (bCurrentQty * bCurrentAvg + addSharesB * bBuy) / finalQtyB;
+      }
+
+      // Display outputs
+      if (resANetRevenue) resANetRevenue.textContent = formatNumber(netRevenueA, unitWon);
+      if (resAProfit) {
+        resAProfit.textContent = formatNumber(profitA, unitWon);
+        resAProfit.className = `result-value ${profitA >= 0 ? 'success-text' : 'danger-text'}`;
+      }
+
+      if (resBFinalAvg) resBFinalAvg.textContent = formatNumber(finalAvgPriceB, unitWon);
+      if (resBAddQty) resBAddQty.textContent = formatNumber(addSharesB, unitShares);
+      if (resBFinalQty) resBFinalQty.textContent = formatNumber(finalQtyB, unitShares);
+      if (resRemainingCash) resRemainingCash.textContent = formatNumber(remainingCash, unitWon);
+    };
+
+    const QtyValue = (qty: number) => {
+      return Math.max(1, qty);
+    };
+
+    const clear = () => {
+      aAvgInput.value = '';
+      aQtyInput.value = '';
+      aSellInput.value = '';
+      bBuyInput.value = '';
+      bCurrentAvgInput.value = '0';
+      bCurrentQtyInput.value = '0';
+
+      if (resANetRevenue) resANetRevenue.textContent = '0 원';
+      if (resAProfit) {
+        resAProfit.textContent = '0 원';
+        resAProfit.className = 'result-value';
+      }
+      if (resBFinalAvg) resBFinalAvg.textContent = '0 원';
+      if (resBAddQty) resBAddQty.textContent = '0 주';
+      if (resBFinalQty) resBFinalQty.textContent = '0 주';
+      if (resRemainingCash) resRemainingCash.textContent = '0 원';
+    };
+
+    if (calcBtn) calcBtn.addEventListener('click', calculate);
+    if (clearBtn) clearBtn.addEventListener('click', clear);
+
+    // Enter key support
+    const inputs = [aAvgInput, aQtyInput, aSellInput, bBuyInput, bCurrentAvgInput, bCurrentQtyInput];
+    inputs.forEach(input => {
+      if (input) {
+        input.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') {
+            calculate();
+          }
+        });
+      }
+    });
+  });
+</script>
